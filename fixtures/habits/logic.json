@@ -1,0 +1,25 @@
+{
+  "consts": {},
+  "functions": {
+    "nextStreak": {
+      "params": ["cur", "gap"],
+      "cel": "gap <= 0 ? (cur > 0 ? cur : 1) : gap == 1 ? cur + 1 : 1"
+    },
+    "streakStep": {
+      "params": ["acc", "day"],
+      "cel": "cel.bind(n, acc.last == null ? 1 : nextStreak(acc.streak, daysBetween(acc.last, day)), {'streak': n, 'best': acc.best > n ? acc.best : n, 'last': day})"
+    },
+    "streakFromHistory": {
+      "params": ["checkins", "today", "storedBest"],
+      "cel": "cel.bind(acc, fold(checkins.filter(d, d <= today), {'streak': 0, 'best': storedBest, 'last': null}, 'streakStep'), {'streak': acc.last == null || daysBetween(acc.last, today) > 1 ? 0 : acc.streak, 'best': acc.best, 'risk': acc.last != null && daysBetween(acc.last, today) == 1})"
+    },
+    "checkins": {
+      "params": ["days"],
+      "cel": "days.filter(d, days[d].size() > 0 && days[d].all(e, e.done)).sort()"
+    },
+    "dayStatus": {
+      "params": ["days", "d", "today"],
+      "cel": "!(d in days) || days[d].size() == 0 ? 'none' : days[d].all(e, e.done) ? 'complete' : d == today ? 'active' : days[d].exists(e, e.done) ? 'partial' : 'incomplete'"
+    }
+  }
+}

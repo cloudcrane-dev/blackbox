@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "rootDir": "src", "outDir": ".tsbuild", "lib": ["ES2023"], "resolveJsonModule": true },
+  "include": ["src"],
+  "references": [{ "path": "../app-spec" }, { "path": "../app-runtime" }]
+}

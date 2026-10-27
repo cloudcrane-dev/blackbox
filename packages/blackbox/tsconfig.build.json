@@ -1,0 +1,18 @@
+// The published build: the CLI and library as JavaScript and types in dist/.
+// Our other packages resolve to their built types.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "emitDeclarationOnly": false,
+    "outDir": "dist",
+    "paths": {
+      "@cloudcrane/app-spec": ["../app-spec/dist/src/index.d.ts"],
+      "@cloudcrane/app-spec/*": ["../app-spec/dist/src/*.d.ts"],
+      "@cloudcrane/app-runtime": ["../app-runtime/dist/index.d.ts"]
+    }
+  },
+  "include": [],
+  "files": ["src/index.ts", "src/cli.ts"]
+}

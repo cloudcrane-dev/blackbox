@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+fixtures/**/*.html
+packages/*/schema/*.json
+packages/*/vendor/**
+packages/*/src/**/*.generated.ts

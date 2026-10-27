@@ -1,0 +1,460 @@
+{
+  "$id": "https://cloudcrane.ai/schemas/app-spec.v1.json",
+  "title": "CloudCrane app spec v1",
+  "description": "An A2UI surface in an envelope: DTCG tokens, saved data, CEL logic, journeys, promises, tests and mod points. No code.",
+  "type": "object",
+  "properties": {
+    "v": {
+      "type": "number",
+      "const": 1
+    },
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "generator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "fingerprint"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "runtime",
+        "generator",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "module": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.-]{0,63}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+        },
+        "category": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 24
+          },
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "purpose"
+      ],
+      "additionalProperties": false
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "$value": {},
+        "$type": {
+          "type": "string",
+          "enum": [
+            "color",
+            "dimension",
+            "fontFamily",
+            "fontWeight",
+            "duration",
+            "cubicBezier",
+            "number",
+            "strokeStyle",
+            "border",
+            "transition",
+            "shadow",
+            "gradient",
+            "typography"
+          ]
+        },
+        "$description": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": {}
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "catalog": {
+          "type": "string",
+          "format": "uri"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "minItems": 2,
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "catalog",
+        "messages"
+      ],
+      "additionalProperties": false
+    },
+    "data": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+        },
+        "persist": {
+          "type": "string",
+          "pattern": "^(\\/([^~/]|~[01])*)*$"
+        },
+        "schema": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "initial": {},
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^(\\/([^~/]|~[01])*)*$"
+              },
+              "source": {
+                "type": "string",
+                "pattern": "^(\\/([^~/$]|~[01]|\\$\\{\\/[^}]*\\})*)+$"
+              }
+            },
+            "required": [
+              "path",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10,
+          "default": []
+        },
+        "migrations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "to": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "cel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "cel"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "version",
+        "key",
+        "persist",
+        "schema",
+        "migrations"
+      ],
+      "additionalProperties": false
+    },
+    "logic": {
+      "type": "object",
+      "properties": {
+        "consts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "string",
+              "boolean"
+            ]
+          },
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+          },
+          "default": {}
+        },
+        "functions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+                },
+                "maxItems": 8
+              },
+              "cel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              }
+            },
+            "required": [
+              "params",
+              "cel"
+            ],
+            "additionalProperties": false
+          },
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+          },
+          "default": {}
+        },
+        "computed": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "propertyNames": {
+            "pattern": "^(\\/([^~/]|~[01])*)*$"
+          },
+          "default": {}
+        },
+        "vectors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fn": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+              },
+              "in": {
+                "type": "array",
+                "items": {},
+                "maxItems": 8
+              },
+              "out": {},
+              "from": {
+                "type": "string",
+                "enum": [
+                  "recorded",
+                  "hint"
+                ]
+              }
+            },
+            "required": [
+              "fn",
+              "in",
+              "from"
+            ],
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "network": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$"
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "site",
+          "why"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 5,
+      "default": []
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^J-\\d+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^J-\\d+\\.\\d+$"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 400
+                }
+              },
+              "required": [
+                "id",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "steps"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "promises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^P-\\d+$"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "kind": {
+            "type": "string",
+            "const": "data"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "default": []
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": {}
+      },
+      "maxItems": 30,
+      "default": []
+    },
+    "mods": {
+      "type": "object",
+      "properties": {
+        "open": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(\\/([^~/*]|~[01])*)*(\\/\\*)?$"
+          }
+        },
+        "locked": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(\\/([^~/*]|~[01])*)*(\\/\\*)?$"
+          }
+        }
+      },
+      "required": [
+        "open",
+        "locked"
+      ],
+      "additionalProperties": false,
+      "default": {
+        "open": [],
+        "locked": []
+      }
+    }
+  },
+  "required": [
+    "v",
+    "manifest",
+    "module",
+    "tokens",
+    "surface",
+    "data",
+    "logic",
+    "journeys"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2019-09/schema#"
+}

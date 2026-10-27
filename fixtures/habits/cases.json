@@ -1,0 +1,57 @@
+{
+  "about": "The streak's reference cases, worked out by hand from the rule: a day counts when it has habits and every one is done; days that count in a row make the streak; it stays alive until the end of the day after the last day that counted. Today is 2026-10-27, a Tuesday. `checkins` are the days that count; `partial` days have a habit left undone.",
+  "cases": [
+    { "id": "H1", "what": "Nothing done yet", "checkins": [], "today": "2026-10-27", "expect": { "streak": 0, "best": 0, "risk": false } },
+    {
+      "id": "H2",
+      "what": "Three days in a row up to today",
+      "checkins": ["2026-10-25", "2026-10-26", "2026-10-27"],
+      "today": "2026-10-27",
+      "expect": { "streak": 3, "best": 3, "risk": false }
+    },
+    {
+      "id": "H3",
+      "what": "Two days in a row up to yesterday: still alive, and on the line until today counts",
+      "checkins": ["2026-10-25", "2026-10-26"],
+      "today": "2026-10-27",
+      "expect": { "streak": 2, "best": 2, "risk": true }
+    },
+    {
+      "id": "H4",
+      "what": "Yesterday was missed: the streak has ended, its best stays",
+      "checkins": ["2026-10-24", "2026-10-25"],
+      "today": "2026-10-27",
+      "expect": { "streak": 0, "best": 2, "risk": false }
+    },
+    {
+      "id": "H5",
+      "what": "A missed day between two runs: the streak is the run since",
+      "checkins": ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27"],
+      "today": "2026-10-27",
+      "expect": { "streak": 4, "best": 4, "risk": false }
+    },
+    {
+      "id": "H6",
+      "what": "A longer run earlier is the best; the streak starts again at 1 then 2",
+      "checkins": ["2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-26", "2026-10-27"],
+      "today": "2026-10-27",
+      "expect": { "streak": 2, "best": 6, "risk": false }
+    },
+    {
+      "id": "H7",
+      "what": "A day with a habit left undone doesn't count, and breaks the run",
+      "checkins": ["2026-10-25", "2026-10-27"],
+      "partial": ["2026-10-26"],
+      "today": "2026-10-27",
+      "expect": { "streak": 1, "best": 1, "risk": false }
+    },
+    {
+      "id": "H8",
+      "what": "A saved best higher than any run here is kept",
+      "checkins": ["2026-10-27"],
+      "best": 9,
+      "today": "2026-10-27",
+      "expect": { "streak": 1, "best": 9, "risk": false }
+    }
+  ]
+}

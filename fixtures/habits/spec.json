@@ -1,0 +1,515 @@
+{
+  "v": 1,
+  "manifest": {
+    "runtime": "0.1.0",
+    "generator": "blackbox@0.1.0 (hand-written example)",
+    "source": {
+      "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "module": {
+    "id": "habits",
+    "name": "Daily Habits",
+    "purpose": "Plan today's habits, tick them off, and keep a streak of days with every habit done."
+  },
+  "tokens": {
+    "color": {
+      "$type": "color",
+      "background": {
+        "$value": "#f6f5f2"
+      },
+      "on-background": {
+        "$value": "#1d1c1a"
+      },
+      "surface": {
+        "$value": "#ffffff"
+      },
+      "on-surface": {
+        "$value": "#1d1c1a"
+      },
+      "border": {
+        "$value": "#dedbd5"
+      },
+      "primary": {
+        "$value": "#0f766e"
+      },
+      "on-primary": {
+        "$value": "#ffffff"
+      },
+      "input": {
+        "$value": "#efede9"
+      },
+      "on-input": {
+        "$value": "#1d1c1a"
+      },
+      "success": {
+        "$value": "#15803d"
+      },
+      "warning": {
+        "$value": "#b45309"
+      },
+      "error": {
+        "$value": "#b91c1c"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "caption-color": {
+        "$value": "#625e57"
+      },
+      "color": {
+        "$value": "#1d1c1a"
+      }
+    },
+    "border-radius": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "font-family": {
+      "$type": "fontFamily",
+      "$value": ["system-ui", "sans-serif"]
+    }
+  },
+  "surface": {
+    "catalog": "https://cloudcrane.ai/catalogs/app/v1.json",
+    "messages": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "habits",
+          "catalogId": "https://cloudcrane.ai/catalogs/app/v1.json"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateDataModel": {
+          "surfaceId": "habits",
+          "path": "/ui",
+          "value": {
+            "selected": "",
+            "day": [],
+            "draft": {
+              "name": "",
+              "done": false
+            }
+          }
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "habits",
+          "components": [
+            {
+              "id": "root",
+              "component": "Column",
+              "children": ["title", "streakCard", "days", "planCard"]
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "text": "Your Habits",
+              "variant": "h1"
+            },
+            {
+              "id": "streakCard",
+              "component": "Card",
+              "child": "streakCol"
+            },
+            {
+              "id": "streakCol",
+              "component": "Column",
+              "children": ["streakText", "streakNote"]
+            },
+            {
+              "id": "streakText",
+              "component": "Text",
+              "text": {
+                "path": "/computed/streakText"
+              },
+              "variant": "h2"
+            },
+            {
+              "id": "streakNote",
+              "component": "Text",
+              "text": {
+                "path": "/computed/streakNote"
+              },
+              "variant": "caption"
+            },
+            {
+              "id": "days",
+              "component": "DateStrip",
+              "days": 14,
+              "today": {
+                "path": "/today"
+              },
+              "value": {
+                "path": "/ui/selected"
+              },
+              "statuses": {
+                "path": "/computed/dayStatus"
+              }
+            },
+            {
+              "id": "planCard",
+              "component": "Card",
+              "child": "planCol"
+            },
+            {
+              "id": "planCol",
+              "component": "Column",
+              "children": ["planTitle", "empty", "todayList", "pastList", "addArea"]
+            },
+            {
+              "id": "planTitle",
+              "component": "Text",
+              "text": {
+                "path": "/computed/planTitle"
+              },
+              "variant": "h3"
+            },
+            {
+              "id": "empty",
+              "component": "List",
+              "children": {
+                "componentId": "emptyText",
+                "path": "/computed/empty"
+              }
+            },
+            {
+              "id": "emptyText",
+              "component": "Text",
+              "text": {
+                "path": "text"
+              },
+              "variant": "caption"
+            },
+            {
+              "id": "todayList",
+              "component": "List",
+              "children": {
+                "componentId": "todayRows",
+                "path": "/computed/ifToday"
+              }
+            },
+            {
+              "id": "todayRows",
+              "component": "List",
+              "children": {
+                "componentId": "row",
+                "path": "/ui/day"
+              }
+            },
+            {
+              "id": "row",
+              "component": "Row",
+              "children": ["check", "remove"],
+              "align": "center"
+            },
+            {
+              "id": "check",
+              "component": "CheckBox",
+              "label": {
+                "path": "name"
+              },
+              "value": {
+                "path": "done"
+              },
+              "weight": 1
+            },
+            {
+              "id": "remove",
+              "component": "Button",
+              "child": "removeLabel",
+              "action": {
+                "functionCall": {
+                  "call": "removeAt",
+                  "args": {
+                    "path": "/ui/day"
+                  }
+                }
+              },
+              "accessibility": {
+                "label": "Remove this habit"
+              }
+            },
+            {
+              "id": "removeLabel",
+              "component": "Text",
+              "text": "×"
+            },
+            {
+              "id": "pastList",
+              "component": "List",
+              "children": {
+                "componentId": "pastRows",
+                "path": "/computed/isPast"
+              }
+            },
+            {
+              "id": "pastRows",
+              "component": "List",
+              "children": {
+                "componentId": "pastRow",
+                "path": "/ui/day"
+              }
+            },
+            {
+              "id": "pastRow",
+              "component": "Text",
+              "text": {
+                "call": "formatString",
+                "args": {
+                  "value": "${name}"
+                }
+              }
+            },
+            {
+              "id": "addArea",
+              "component": "List",
+              "children": {
+                "componentId": "addForm",
+                "path": "/computed/ifToday"
+              }
+            },
+            {
+              "id": "addForm",
+              "component": "Column",
+              "children": ["nameField", "addButton"]
+            },
+            {
+              "id": "nameField",
+              "component": "TextField",
+              "label": "Habit",
+              "value": {
+                "path": "/ui/draft/name"
+              }
+            },
+            {
+              "id": "addButton",
+              "component": "Button",
+              "child": "addLabel",
+              "variant": "primary",
+              "checks": [
+                {
+                  "condition": {
+                    "call": "required",
+                    "args": {
+                      "value": {
+                        "path": "/ui/draft/name"
+                      }
+                    },
+                    "returnType": "boolean"
+                  },
+                  "message": "Name the habit first"
+                }
+              ],
+              "action": {
+                "functionCall": {
+                  "call": "batch",
+                  "args": {
+                    "steps": [
+                      {
+                        "op": "push",
+                        "value": {
+                          "path": "/ui/draft"
+                        },
+                        "target": "/ui/day"
+                      },
+                      {
+                        "op": "set",
+                        "value": "",
+                        "target": "/ui/draft/name"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": "addLabel",
+              "component": "Text",
+              "text": "+ Add habit"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "data": {
+    "version": 1,
+    "key": "habits.days",
+    "persist": "/saved",
+    "views": [
+      {
+        "path": "/ui/day",
+        "source": "/saved/days/${/ui/selected}"
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "done": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "best": {
+          "type": "integer"
+        }
+      }
+    },
+    "initial": {
+      "days": {},
+      "best": 0
+    },
+    "migrations": []
+  },
+  "logic": {
+    "consts": {},
+    "functions": {
+      "nextStreak": {
+        "params": ["cur", "gap"],
+        "cel": "gap <= 0 ? (cur > 0 ? cur : 1) : gap == 1 ? cur + 1 : 1"
+      },
+      "streakStep": {
+        "params": ["acc", "day"],
+        "cel": "cel.bind(n, acc.last == null ? 1 : nextStreak(acc.streak, daysBetween(acc.last, day)), {'streak': n, 'best': acc.best > n ? acc.best : n, 'last': day})"
+      },
+      "streakFromHistory": {
+        "params": ["checkins", "today", "storedBest"],
+        "cel": "cel.bind(acc, fold(checkins.filter(d, d <= today), {'streak': 0, 'best': storedBest, 'last': null}, 'streakStep'), {'streak': acc.last == null || daysBetween(acc.last, today) > 1 ? 0 : acc.streak, 'best': acc.best, 'risk': acc.last != null && daysBetween(acc.last, today) == 1})"
+      },
+      "checkins": {
+        "params": ["days"],
+        "cel": "days.filter(d, days[d].size() > 0 && days[d].all(e, e.done)).sort()"
+      },
+      "dayStatus": {
+        "params": ["days", "d", "today"],
+        "cel": "!(d in days) || days[d].size() == 0 ? 'none' : days[d].all(e, e.done) ? 'complete' : d == today ? 'active' : days[d].exists(e, e.done) ? 'partial' : 'incomplete'"
+      }
+    },
+    "computed": {
+      "/computed/streak": "streakFromHistory(checkins(saved.days), today, saved.best)",
+      "/computed/streakText": "cel.bind(s, streakFromHistory(checkins(saved.days), today, saved.best), string(s.streak) + (s.streak == 1 ? ' day' : ' days') + ' in a row')",
+      "/computed/streakNote": "cel.bind(s, streakFromHistory(checkins(saved.days), today, saved.best), s.risk ? \"Finish today's habits to keep it going.\" : 'Best ' + string(s.best))",
+      "/computed/dayStatus": "dateRange(addDays(today, -13), addDays(today, 1)).map(d, {'day': d, 'status': dayStatus(saved.days, d, today)})",
+      "/computed/ifToday": "ui.selected == today ? [{'shown': true}] : []",
+      "/computed/isPast": "ui.selected != today ? [{'shown': true}] : []",
+      "/computed/planTitle": "ui.selected == today ? \"Today's habits\" : 'Habits on ' + ui.selected",
+      "/computed/empty": "ui.day.size() == 0 ? [{'text': ui.selected == today ? 'Nothing planned yet. Add your first habit.' : 'No habits this day.'}] : []",
+      "/saved/best": "cel.bind(s, streakFromHistory(checkins(saved.days), today, saved.best), s.best > saved.best ? s.best : saved.best)"
+    },
+    "vectors": [
+      {
+        "fn": "nextStreak",
+        "in": [3, 1],
+        "out": 4,
+        "from": "hint"
+      },
+      {
+        "fn": "nextStreak",
+        "in": [3, 0],
+        "out": 3,
+        "from": "hint"
+      },
+      {
+        "fn": "nextStreak",
+        "in": [3, 2],
+        "out": 1,
+        "from": "hint"
+      },
+      {
+        "fn": "nextStreak",
+        "in": [0, 0],
+        "out": 1,
+        "from": "hint"
+      }
+    ]
+  },
+  "network": [],
+  "journeys": [
+    {
+      "id": "J-1",
+      "title": "Plan and do today's habits",
+      "steps": [
+        {
+          "id": "J-1.1",
+          "text": "Add a habit to today"
+        },
+        {
+          "id": "J-1.2",
+          "text": "Tick a habit off when it's done; today's dot turns green when every habit is"
+        },
+        {
+          "id": "J-1.3",
+          "text": "Remove a habit from today"
+        }
+      ]
+    },
+    {
+      "id": "J-2",
+      "title": "Keep a streak",
+      "steps": [
+        {
+          "id": "J-2.1",
+          "text": "A day counts when every habit planned for it is done"
+        },
+        {
+          "id": "J-2.2",
+          "text": "Days that count in a row make the streak; a day that doesn't count ends it"
+        },
+        {
+          "id": "J-2.3",
+          "text": "Until today counts, the streak card says to finish today's habits to keep it going"
+        }
+      ]
+    },
+    {
+      "id": "J-3",
+      "title": "Look back",
+      "steps": [
+        {
+          "id": "J-3.1",
+          "text": "Pick an earlier day on the strip to see what was planned and done; it can't be changed"
+        }
+      ]
+    }
+  ],
+  "promises": [
+    {
+      "id": "P-1",
+      "text": "Habits and ticks saved on this phone survive an update and a reload",
+      "kind": "data"
+    },
+    {
+      "id": "P-2",
+      "text": "A day counts once, however many habits it has"
+    },
+    {
+      "id": "P-3",
+      "text": "A day that counts after the streak ended starts it again at 1"
+    }
+  ],
+  "tests": [],
+  "mods": {
+    "open": ["/tokens/*", "/surface/*"],
+    "locked": ["/logic/functions/*", "/data/*"]
+  }
+}

@@ -1,0 +1,19 @@
+// The published build: the compiler (with the runtime inlined by build.mjs) as
+// JavaScript and types in dist/. The runtime's own source isn't shipped: it is
+// already in the compiler, as one locked bundle. Our other packages resolve to
+// their built types.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "emitDeclarationOnly": false,
+    "outDir": "dist",
+    "paths": {
+      "@cloudcrane/app-spec": ["../app-spec/dist/src/index.d.ts"],
+      "@cloudcrane/app-spec/*": ["../app-spec/dist/src/*.d.ts"]
+    }
+  },
+  "include": [],
+  "files": ["src/index.ts", "src/host.ts"]
+}

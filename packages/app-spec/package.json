@@ -1,0 +1,91 @@
+{
+  "name": "@cloudcrane/app-spec",
+  "version": "0.1.0",
+  "description": "The CloudCrane app spec: its schema, the expression language its rules are written in, and the checks that keep partner code out of it.",
+  "keywords": [
+    "cloudcrane",
+    "app-spec",
+    "a2ui",
+    "cel",
+    "design-tokens",
+    "json-schema"
+  ],
+  "homepage": "https://github.com/cloudcrane-dev/blackbox/tree/main/packages/app-spec#readme",
+  "bugs": {
+    "url": "https://github.com/cloudcrane-dev/blackbox/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudcrane-dev/blackbox.git",
+    "directory": "packages/app-spec"
+  },
+  "license": "MIT",
+  "author": "Chirag Phor",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./logic": "./src/logic.ts",
+    "./catalog": "./src/catalog.ts",
+    "./schema": "./src/schema.ts",
+    "./blueprint": "./src/blueprint.ts",
+    "./schema.json": "./schema/app-spec.v1.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "schema",
+    "vendor",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@marcbachmann/cel-js": "^8.0.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "canonicalize": "^2.1.0",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2",
+    "zod": "^3.25.76"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/src/index.d.ts",
+        "default": "./dist/src/index.js"
+      },
+      "./logic": {
+        "types": "./dist/src/logic.d.ts",
+        "default": "./dist/src/logic.js"
+      },
+      "./catalog": {
+        "types": "./dist/src/catalog.d.ts",
+        "default": "./dist/src/catalog.js"
+      },
+      "./schema": {
+        "types": "./dist/src/schema.d.ts",
+        "default": "./dist/src/schema.js"
+      },
+      "./blueprint": {
+        "types": "./dist/src/blueprint.d.ts",
+        "default": "./dist/src/blueprint.js"
+      },
+      "./schema.json": "./schema/app-spec.v1.json",
+      "./package.json": "./package.json"
+    }
+  }
+}

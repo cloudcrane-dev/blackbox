@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/app-spec"
+    },
+    {
+      "path": "packages/app-runtime"
+    },
+    {
+      "path": "packages/blackbox"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+// The published build: JavaScript and types in dist/ (tsconfig.json only typechecks).
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "composite": false, "incremental": false, "emitDeclarationOnly": false, "outDir": "dist" },
+  "include": [],
+  "files": ["src/index.ts", "src/logic.ts", "src/catalog.ts", "src/schema.ts", "src/blueprint.ts"]
+}

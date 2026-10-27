@@ -1,0 +1,77 @@
+{
+  "name": "@cloudcrane/app-runtime",
+  "version": "0.1.0",
+  "description": "Builds a CloudCrane app spec into one HTML page, the same bytes every time, and the runtime that draws it with A2UI's renderer.",
+  "keywords": [
+    "cloudcrane",
+    "a2ui",
+    "compiler",
+    "deterministic",
+    "pwa"
+  ],
+  "homepage": "https://github.com/cloudcrane-dev/blackbox/tree/main/packages/app-runtime#readme",
+  "bugs": {
+    "url": "https://github.com/cloudcrane-dev/blackbox/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudcrane-dev/blackbox.git",
+    "directory": "packages/app-runtime"
+  },
+  "license": "MIT",
+  "author": "Chirag Phor",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./host": "./src/host.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "runtime-lock.json",
+    "THIRD_PARTY_LICENSES.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs && rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
+    "test": "node build.mjs && vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cloudcrane/app-spec": "workspace:^"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@a2ui/react": "0.14.0",
+    "@a2ui/web_core": "0.14.0",
+    "@types/jsdom": "^30.0.0",
+    "axe-core": "4.11.0",
+    "esbuild": "0.28.2",
+    "jsdom": "^26.1.0",
+    "playwright-core": "1.56.1",
+    "preact": "^10.29.8",
+    "tsx": "4.23.15",
+    "zod": "^3.25.76"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./host": {
+        "types": "./dist/host.d.ts",
+        "default": "./dist/host.js"
+      },
+      "./package.json": "./package.json"
+    }
+  }
+}

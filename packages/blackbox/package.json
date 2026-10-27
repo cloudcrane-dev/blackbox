@@ -1,0 +1,68 @@
+{
+  "name": "@cloudcrane/blackbox",
+  "version": "0.1.0",
+  "description": "Turns an app's code into a CloudCrane app spec with no code in it, checks it, and builds or previews the app it describes.",
+  "keywords": [
+    "cloudcrane",
+    "blackbox",
+    "app-spec",
+    "port",
+    "cli"
+  ],
+  "homepage": "https://github.com/cloudcrane-dev/blackbox/tree/main/packages/blackbox#readme",
+  "bugs": {
+    "url": "https://github.com/cloudcrane-dev/blackbox/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudcrane-dev/blackbox.git",
+    "directory": "packages/blackbox"
+  },
+  "license": "MIT",
+  "author": "Chirag Phor",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "bin": {
+    "blackbox": "./bin/blackbox.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cloudcrane/app-runtime": "workspace:^",
+    "@cloudcrane/app-spec": "workspace:^",
+    "typescript": "~5.9.3",
+    "veridic": "^0.14.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  },
+  "publishConfig": {
+    "access": "public",
+    "bin": {
+      "blackbox": "./dist/cli.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./package.json": "./package.json"
+    }
+  }
+}
