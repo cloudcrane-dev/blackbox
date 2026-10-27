@@ -76,7 +76,8 @@ const historyOf = (c: (typeof cases)[number]) => {
 const streakIn = (page: Page) =>
   page.evaluate(() => (window as unknown as { appState: () => { data: { computed: { streak: unknown } } } }).appState().data.computed.streak);
 
-describe.skipIf(!hasChrome)("Daily Habits, compiled, in Chrome", () => {
+// A browser opening a page per case is slow on shared CI machines: a minute per test, not the 5 s default.
+describe.skipIf(!hasChrome)("Daily Habits, compiled, in Chrome", { timeout: 60_000 }, () => {
   it("gives the eight streak cases worked out by hand", async () => {
     for (const c of cases) {
       const page = await open(compiled, c.today, historyOf(c));
