@@ -507,7 +507,281 @@
       "text": "A day that counts after the streak ended starts it again at 1"
     }
   ],
-  "tests": [],
+  "tests": [
+    {
+      "id": "T-1",
+      "title": "Add a habit to today",
+      "proves": ["J-1.1"],
+      "steps": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "expect": "notChecked",
+          "label": "Read"
+        },
+        {
+          "expect": "count",
+          "role": "checkbox",
+          "equals": 1
+        }
+      ]
+    },
+    {
+      "id": "T-2",
+      "title": "Ticking every habit completes today, and the day counts once",
+      "proves": ["J-1.2", "J-2.1", "P-2"],
+      "clock": "2026-10-26T12:00:00Z",
+      "steps": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Stretch"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "label": "Read"
+        },
+        {
+          "expect": "checked",
+          "label": "Read"
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Today, Mon 26 October, active"
+        },
+        {
+          "do": "tap",
+          "label": "Stretch"
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Today, Mon 26 October, complete"
+        },
+        {
+          "expect": "see",
+          "text": "1 day in a row"
+        }
+      ]
+    },
+    {
+      "id": "T-3",
+      "title": "Remove a habit from today",
+      "proves": ["J-1.3"],
+      "steps": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Remove this habit"
+        },
+        {
+          "expect": "count",
+          "role": "checkbox",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "T-4",
+      "title": "Days in a row make the streak; a missed day ends it, and the next starts it again at 1",
+      "proves": ["J-2.2", "J-2.3", "P-3"],
+      "clock": "2026-10-26T12:00:00Z",
+      "steps": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "label": "Read"
+        },
+        {
+          "expect": "see",
+          "text": "1 day in a row"
+        },
+        {
+          "do": "advance",
+          "ms": 86400000
+        },
+        {
+          "do": "reload"
+        },
+        {
+          "expect": "see",
+          "text": "Finish today's habits to keep it going."
+        },
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "label": "Read"
+        },
+        {
+          "expect": "see",
+          "text": "2 days in a row"
+        },
+        {
+          "do": "advance",
+          "ms": 172800000
+        },
+        {
+          "do": "reload"
+        },
+        {
+          "expect": "state",
+          "path": "data.computed.streak.streak",
+          "equals": 0
+        },
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "label": "Read"
+        },
+        {
+          "expect": "see",
+          "text": "1 day in a row"
+        },
+        {
+          "expect": "state",
+          "path": "data.computed.streak.best",
+          "equals": 2
+        }
+      ]
+    },
+    {
+      "id": "T-5",
+      "title": "An earlier day shows what was planned, and can't be changed",
+      "proves": ["J-3.1"],
+      "clock": "2026-10-26T12:00:00Z",
+      "steps": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "advance",
+          "ms": 86400000
+        },
+        {
+          "do": "reload"
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Mon 26 October, incomplete"
+        },
+        {
+          "expect": "see",
+          "text": "Read"
+        },
+        {
+          "expect": "count",
+          "role": "checkbox",
+          "equals": 0
+        },
+        {
+          "expect": "count",
+          "role": "textbox",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "T-6",
+      "kind": "data",
+      "title": "Habits and ticks survive a reload and an update",
+      "proves": ["P-1"],
+      "setup": [
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Read"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "type",
+          "label": "Habit",
+          "value": "Stretch"
+        },
+        {
+          "do": "tap",
+          "text": "+ Add habit"
+        },
+        {
+          "do": "tap",
+          "label": "Read"
+        }
+      ],
+      "check": [
+        {
+          "expect": "checked",
+          "label": "Read"
+        },
+        {
+          "expect": "notChecked",
+          "label": "Stretch"
+        }
+      ]
+    }
+  ],
   "mods": {
     "open": ["/tokens/*", "/surface/*"],
     "locked": ["/logic/functions/*", "/data/*"]

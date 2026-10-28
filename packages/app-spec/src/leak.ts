@@ -108,6 +108,9 @@ const RULES: Rule[] = [
 const EXEMPT = new Set(["/manifest/source/fingerprint"]);
 /** Where CEL lives: rules may look like code there, but nothing else may. */
 const CEL_AT = [/^\/logic\/functions\/[^/]+\/cel$/, /^\/logic\/computed\/.+$/, /^\/data\/migrations\/\d+\/cel$/];
+/** A test step's state path: a dotted path into what the app exposes (CloudCrane's form), which reads like a member access by design. */
+const STATE_PATH_AT = /^\/tests\/\d+\/(steps|setup|check)\/\d+\/path$/;
+const STATE_PATH = /^[A-Za-z0-9_$]+(\.[A-Za-z0-9_$]+)*$/;
 
 const escape = (k: string) => k.replace(/~/g, "~0").replace(/\//g, "~1");
 
@@ -133,11 +136,11 @@ export function leakProblems(spec: unknown): Problem[] {
     if (at.endsWith("#key") && at.startsWith("/logic/")) continue;
     // A2UI's bindings inside text (${/path}, ${fn(…)}) are the standard's syntax.
     const s = at.startsWith("/surface/") || at.startsWith("/data/views/") ? raw.replace(/\$\{[^}]*\}/g, " ") : raw;
-    const isCel = CEL_AT.some((r) => r.test(at));
+    const codeShaped = CEL_AT.some((r) => r.test(at)) || (STATE_PATH_AT.test(at) && STATE_PATH.test(raw));
     // Web addresses are checked as addresses (hosts, secrets), never as code.
     const withoutUrls = s.replace(/https?:\/\/[^\s"'<>]+/g, " ");
     for (const rule of RULES) {
-      if (isCel && rule.kind === "code") continue;
+      if (codeShaped && rule.kind === "code") continue;
       if (rule.test(rule.kind === "code" ? withoutUrls : s)) {
         problems.push({ at: at || "/", problem: `looks like ${rule.why} (${rule.kind})` });
         break;

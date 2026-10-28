@@ -76,6 +76,16 @@ describe("the leak scan", () => {
       expect(leaking(inPurpose, ok), ok).toBe("");
   });
 
+  it("lets a test check app state at a dotted path, and nothing else that looks like code in it", () => {
+    const at = (path: string, more: Record<string, unknown> = {}) =>
+      leakProblems({ tests: [{ id: "T-1", title: "Status", proves: ["J-1.1"], steps: [{ expect: "state", path, equals: "complete", ...more }] }] });
+    expect(at("data.computed.dayStatus.13.status")).toEqual([]);
+    expect(at("player.livesLeft")).toEqual([]);
+    expect(at("this.state.dayStatus()").map((p) => p.at)).toContain("/tests/0/steps/0/path");
+    // Only the path: the same text in the test's title is still code.
+    expect(leakProblems({ tests: [{ id: "T-1", title: "data.computed.dayStatus", proves: [], steps: [] }] }).map((p) => p.at)).toEqual(["/tests/0/title"]);
+  });
+
   it("skips the source fingerprint, which is a hash by design", () => {
     expect(leakProblems(sampleSpec()).filter((p) => p.at.startsWith("/manifest"))).toEqual([]);
   });
