@@ -524,6 +524,10 @@
       },
       "default": {}
     },
+    "page": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9_.-]{0,63}$"
+    },
     "mods": {
       "type": "object",
       "properties": {
