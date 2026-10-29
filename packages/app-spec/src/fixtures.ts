@@ -8,7 +8,7 @@ export const CATALOG = "https://a2ui.org/specification/v0_9/catalogs/basic/catal
 export function sampleSpec(): Spec {
   return {
     v: 1,
-    manifest: { runtime: "0.1.0", generator: "blackbox@0.1.0", source: { fingerprint: `sha256:${"0".repeat(64)}` } },
+    manifest: { runtime: "0.2.0", generator: "blackbox@0.2.0", source: { fingerprint: `sha256:${"0".repeat(64)}` } },
     module: { id: "plans", name: "Workout log", purpose: "Plan today's exercises and tick them off." },
     tokens: {
       color: {

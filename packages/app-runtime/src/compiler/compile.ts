@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { canonical, validateSpec, type Spec } from "@cloudcrane/app-spec";
-import { DATESTRIP_CSS } from "../runtime/styles.js";
+import { CODED_CSS, DATESTRIP_CSS } from "../runtime/styles.js";
 import { tokensCss } from "../runtime/theme.js";
 import { RUNTIME_JS, RUNTIME_SHA256, RUNTIME_VERSION } from "./runtime.generated.js";
 
@@ -36,8 +36,10 @@ export function compile(input: unknown): Compiled {
   if (spec.manifest.runtime !== RUNTIME_VERSION)
     throw new CompileError([{ at: "manifest.runtime", problem: `this compiler builds runtime ${RUNTIME_VERSION}` }]);
   // Only what drawing the app needs goes in the page: not the journeys, promises or tests.
-  const inPage: Pick<Spec, "data" | "logic" | "surface"> & { module: Spec["module"] } = {
+  // Coded components go in only when there are some.
+  const inPage: Pick<Spec, "data" | "logic" | "surface"> & Partial<Pick<Spec, "components">> & { module: Spec["module"] } = {
     module: spec.module,
+    ...(Object.keys(spec.components).length ? { components: spec.components } : {}),
     data: spec.data,
     logic: spec.logic,
     surface: spec.surface,
@@ -48,7 +50,7 @@ export function compile(input: unknown): Compiled {
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
     `<meta name="cc-runtime" content="${RUNTIME_VERSION}">` +
     `<title>${escapeHtml(spec.module.name)}</title>` +
-    `<style>${tokensCss(spec.tokens)}${BASE_CSS}${DATESTRIP_CSS}</style>` +
+    `<style>${tokensCss(spec.tokens)}${BASE_CSS}${DATESTRIP_CSS}${CODED_CSS}</style>` +
     '</head><body><main id="app"></main>' +
     `<script type="application/json" id="cc-spec">${scriptSafe(canonical(inPage))}</script>` +
     `<script type="module">${RUNTIME_JS}</script>` +

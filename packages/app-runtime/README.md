@@ -12,10 +12,26 @@ const { html, sha256, runtime } = compile(spec);
 ```
 
 - `compile(spec)` returns the page, its sha256 and the runtime it was built
-  with (`@cloudcrane/app-runtime@0.1.0+<hash>`); it throws `CompileError`
+  with (`@cloudcrane/app-runtime@0.2.0+<hash>`); it throws `CompileError`
   listing every problem when the spec doesn't validate.
 - Each runtime version is locked to one bundle hash (`runtime-lock.json`), so a
   version always draws apps the same way.
+- A coded component runs in a frame that's sandboxed (scripts only, so it has
+  no storage and nothing of the page's), in a closed shadow root, reached only
+  through a `MessagePort`. Under CloudCrane's lockdown the lockdown makes the
+  frame (`window.__ccFrame`); elsewhere the runtime makes the same kind. The
+  page drives it: a seed and the inputs, then its clock each frame, paused
+  while hidden. The game kit turns that clock into fixed steps, so a game moves
+  the same way for the same time and seed:
+
+  ```js
+  game.start({ rate: 6, setup() {}, step() {}, draw(g, width, height) {} });
+  game.on("swipe", (dir) => {}); // also "tap" and "input"
+  game.state = { score }; // shown at /ui/coded/<id>/state
+  game.emit("over", { score }); // the screen's action for "over" runs
+  game.random(); // seeded by the page
+  ```
+
 - `@cloudcrane/app-runtime/host`: what a host publishing spec apps needs in one
   import (validate, compile, derive the blueprint).
 
