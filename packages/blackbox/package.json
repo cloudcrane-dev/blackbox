@@ -1,6 +1,6 @@
 {
   "name": "@cloudcrane/blackbox",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turns an app's code into a CloudCrane app spec with no code in it, checks it, and builds or previews the app it describes.",
   "keywords": [
     "cloudcrane",

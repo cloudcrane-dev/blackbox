@@ -1,6 +1,6 @@
 {
   "name": "@cloudcrane/app-spec",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "The CloudCrane app spec: its schema, the expression language its rules are written in, and the checks that keep partner code out of it.",
   "keywords": [
     "cloudcrane",

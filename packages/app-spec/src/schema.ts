@@ -4,7 +4,9 @@ import { z } from "zod";
 // what A2UI doesn't cover. Nothing in it is code from the app it came from:
 // screens are A2UI components, the look is DTCG design tokens, rules are CEL
 // expressions, saved data is described by a JSON Schema. Strict throughout, so a
-// field the spec doesn't define (where code could hide) is refused.
+// field the spec doesn't define (where code could hide) is refused. The one
+// place code belongs is a coded component's, run sandboxed, said so where the
+// app is installed.
 
 /** A neutral id: lower-case words, dots, dashes, underscores. Partner symbol names live only in provenance. */
 export const Id = z.string().regex(/^[a-z][a-zA-Z0-9_.-]{0,63}$/, "an id: a letter, then letters, digits, . _ or -, at most 64");
@@ -46,6 +48,31 @@ export const Tokens: z.ZodType<TokenNode> = z.lazy(() =>
 
 /** A CEL expression (cel.dev); parsed and checked by the logic validator. */
 const Cel = z.string().min(1).max(4000);
+
+/** The kinds of value a coded component is given or sends: JSON's, by name. */
+export const CODED_TYPES = ["number", "string", "boolean", "list", "map"] as const;
+const CodedType = z.enum(CODED_TYPES);
+
+/**
+ * A coded component: what the catalog can't draw, as the spec's own code, run
+ * sandboxed in a frame with a kit (`game`: a loop, a canvas, touch and keys).
+ * It's given only its declared inputs and may only send its declared events;
+ * a screen places it with the catalog's Coded component.
+ */
+export const CodedComponent = z
+  .object({
+    kind: z.literal("coded"),
+    kit: z.enum(["game"]),
+    inputs: z.record(CelName, CodedType).default({}),
+    events: z.record(CelName, z.record(CelName, CodedType)).default({}),
+    code: z
+      .string()
+      .min(1)
+      .max(64 * 1024)
+      .refine((c) => !/<\/script/i.test(c), "can't contain </script>, which would end the frame's script"),
+  })
+  .strict()
+  .refine((c) => Object.keys(c.inputs).length <= 10 && Object.keys(c.events).length <= 10, "at most 10 inputs and 10 events");
 
 export const SpecSchema = z
   .object({
@@ -137,6 +164,11 @@ export const SpecSchema = z
     promises: z.array(z.object({ id: z.string().regex(/^P-\d+$/), text: Text(400), kind: z.literal("data").optional() }).strict()).default([]),
     /** CloudCrane's test steps, as its blueprint tests take them; CloudCrane checks their shape. */
     tests: z.array(z.record(z.unknown())).max(30).default([]),
+    /** Coded components, by name: the spec's own code for what the catalog can't draw. */
+    components: z
+      .record(Id, CodedComponent)
+      .refine((c) => Object.keys(c).length <= 5, "at most 5 components")
+      .default({}),
     /** What a remix may change and what stays as the partner made it. */
     mods: z
       .object({ open: z.array(PointerPattern), locked: z.array(PointerPattern) })

@@ -416,6 +416,79 @@
       "maxItems": 30,
       "default": []
     },
+    "components": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "coded"
+          },
+          "kit": {
+            "type": "string",
+            "enum": [
+              "game"
+            ]
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "number",
+                "string",
+                "boolean",
+                "list",
+                "map"
+              ]
+            },
+            "propertyNames": {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+            },
+            "default": {}
+          },
+          "events": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": [
+                  "number",
+                  "string",
+                  "boolean",
+                  "list",
+                  "map"
+                ]
+              },
+              "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+              }
+            },
+            "propertyNames": {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+            },
+            "default": {}
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        },
+        "required": [
+          "kind",
+          "kit",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-zA-Z0-9_.-]{0,63}$"
+      },
+      "default": {}
+    },
     "mods": {
       "type": "object",
       "properties": {

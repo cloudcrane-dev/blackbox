@@ -20,7 +20,7 @@ describe("a spec's blueprint", () => {
     const b = deriveBlueprint(habits());
     expect(b.screens).toEqual([{ id: "habits", says: "Shows Your Habits; asks for Habit; with + Add habit; using DateStrip, CheckBox, TextField." }]);
     expect(b.design.palette).toContain("#0f766e");
-    expect(b.design.notes).toBe("Built from a CloudCrane spec, runtime 0.1.0.");
+    expect(b.design.notes).toBe("Built from a CloudCrane spec, runtime 0.2.0.");
   });
 
   it("takes the listing (icon, category, tags) when the spec has one", () => {

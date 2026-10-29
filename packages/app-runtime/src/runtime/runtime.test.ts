@@ -64,7 +64,11 @@ describe("tokens", () => {
       ["--a2ui-font-family", '"Atkinson Hyperlegible", system-ui'],
       ["--a2ui-shade", "rgb(0 0 0 / 0.5)"],
     ]);
-    expect(tokensCss({ color: { primary: { $value: "#000" } } })).toBe(":root{--a2ui-color-primary:#000;}");
+    expect(tokensCss({ color: { primary: { $value: "#000" } } })).toBe(":root{color-scheme:light;--a2ui-color-primary:#000;}");
+    // The page's scheme follows its own background, so A2UI's light-dark() defaults match it whatever the phone is set to.
+    expect(tokensCss({ color: { background: { $value: "#f6f5f2" } } })).toMatch(/^:root\{color-scheme:light;/);
+    expect(tokensCss({ color: { background: { $value: "#111" } } })).toMatch(/^:root\{color-scheme:dark;/);
+    expect(tokensCss({ color: { background: { $value: { colorSpace: "srgb", components: [0.05, 0.05, 0.08] } } } })).toMatch(/^:root\{color-scheme:dark;/);
   });
 });
 

@@ -8,6 +8,7 @@ import type { Spec } from "@cloudcrane/app-spec/schema";
 import { runStep, runSteps, type Model, type Step } from "./actions.js";
 import { computeAll, localToday } from "./computed.js";
 import { watchLabels } from "./a11y.js";
+import { Coded, setCodedEnv } from "./codedview.js";
 import { DateStrip } from "./datestrip.js";
 import { TextField } from "./textfield.js";
 import { loadSaved, serializeSaved } from "./store.js";
@@ -76,12 +77,12 @@ function boot(): void {
   }
   const loaded = loadSaved(raw, spec.data, rules);
 
-  // A2UI's basic components, with TextField's label tied to its input (see textfield.tsx), plus DateStrip.
+  // A2UI's basic components, with TextField's label tied to its input (see textfield.tsx), plus DateStrip and Coded.
   const basics = [...basicCatalog.components.values()].filter((c) => c.name !== "TextField");
   const catalog = new Catalog(
     CLOUDCRANE_CATALOG_ID,
     "v0.9",
-    [...basics, TextField, DateStrip] as never[],
+    [...basics, TextField, DateStrip, Coded] as never[],
     [...basicCatalog.functions.values(), ...FUNCTIONS] as never[],
   );
   const processor = new MessageProcessor([catalog as never]);
@@ -92,6 +93,7 @@ function boot(): void {
   surface.onError.subscribe((e: unknown) => console.error("[a2ui]", JSON.stringify(e)));
   surface.onWarning.subscribe((w: unknown) => console.warn("[a2ui]", JSON.stringify(w)));
   const persist = spec.data.persist;
+  setCodedEnv({ components: spec.components ?? {}, set: (p, v) => model.set(p, v) });
 
   const today = (window as { __ccToday?: string }).__ccToday ?? localToday();
   model.set("/today", today);

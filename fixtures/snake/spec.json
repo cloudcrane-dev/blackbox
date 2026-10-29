@@ -1,0 +1,519 @@
+{
+  "v": 1,
+  "manifest": {
+    "runtime": "0.2.0",
+    "generator": "blackbox@0.2.0 (hand-written example)",
+    "source": {
+      "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "module": {
+    "id": "snake",
+    "name": "Snake",
+    "purpose": "Steer a snake to eat food and grow; hitting a wall or itself ends the game, and your best score is kept."
+  },
+  "tokens": {
+    "color": {
+      "$type": "color",
+      "background": {
+        "$value": "#f6f5f2"
+      },
+      "on-background": {
+        "$value": "#1d1c1a"
+      },
+      "surface": {
+        "$value": "#ffffff"
+      },
+      "on-surface": {
+        "$value": "#1d1c1a"
+      },
+      "border": {
+        "$value": "#dedbd5"
+      },
+      "primary": {
+        "$value": "#0f766e"
+      },
+      "on-primary": {
+        "$value": "#ffffff"
+      },
+      "input": {
+        "$value": "#efede9"
+      },
+      "on-input": {
+        "$value": "#1d1c1a"
+      },
+      "success": {
+        "$value": "#15803d"
+      },
+      "warning": {
+        "$value": "#b45309"
+      },
+      "error": {
+        "$value": "#b91c1c"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "caption-color": {
+        "$value": "#625e57"
+      },
+      "color": {
+        "$value": "#1d1c1a"
+      }
+    },
+    "border-radius": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "font-family": {
+      "$type": "fontFamily",
+      "$value": ["system-ui", "sans-serif"]
+    }
+  },
+  "surface": {
+    "catalog": "https://cloudcrane.ai/catalogs/app/v1.json",
+    "messages": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "snake",
+          "catalogId": "https://cloudcrane.ai/catalogs/app/v1.json"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "snake",
+          "components": [
+            {
+              "id": "root",
+              "component": "Column",
+              "children": ["title", "scores", "board", "pad", "newGame"]
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "text": "Snake",
+              "variant": "h1"
+            },
+            {
+              "id": "scores",
+              "component": "Row",
+              "children": ["scoreLabel", "scoreValue", "bestLabel", "bestValue"]
+            },
+            {
+              "id": "scoreLabel",
+              "component": "Text",
+              "text": "Score"
+            },
+            {
+              "id": "scoreValue",
+              "component": "Text",
+              "text": {
+                "path": "/ui/coded/board/state/score"
+              }
+            },
+            {
+              "id": "bestLabel",
+              "component": "Text",
+              "text": "Best"
+            },
+            {
+              "id": "bestValue",
+              "component": "Text",
+              "text": {
+                "path": "/saved/best"
+              }
+            },
+            {
+              "id": "board",
+              "component": "Coded",
+              "use": "snake",
+              "label": "Snake board: swipe or use the arrows to steer",
+              "aspect": 1,
+              "inputs": [
+                {
+                  "name": "press",
+                  "value": {
+                    "path": "/ui/press"
+                  }
+                }
+              ],
+              "on": [
+                {
+                  "name": "over",
+                  "action": {
+                    "functionCall": {
+                      "call": "set",
+                      "args": {
+                        "path": "/saved/best",
+                        "value": {
+                          "path": "/computed/newBest"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "pad",
+              "component": "Row",
+              "children": ["left", "up", "down", "right"]
+            },
+            {
+              "id": "left",
+              "component": "Button",
+              "child": "leftLabel",
+              "action": {
+                "functionCall": {
+                  "call": "push",
+                  "args": {
+                    "path": "/ui/press",
+                    "value": "left"
+                  }
+                }
+              }
+            },
+            {
+              "id": "leftLabel",
+              "component": "Text",
+              "text": "Left"
+            },
+            {
+              "id": "up",
+              "component": "Button",
+              "child": "upLabel",
+              "action": {
+                "functionCall": {
+                  "call": "push",
+                  "args": {
+                    "path": "/ui/press",
+                    "value": "up"
+                  }
+                }
+              }
+            },
+            {
+              "id": "upLabel",
+              "component": "Text",
+              "text": "Up"
+            },
+            {
+              "id": "down",
+              "component": "Button",
+              "child": "downLabel",
+              "action": {
+                "functionCall": {
+                  "call": "push",
+                  "args": {
+                    "path": "/ui/press",
+                    "value": "down"
+                  }
+                }
+              }
+            },
+            {
+              "id": "downLabel",
+              "component": "Text",
+              "text": "Down"
+            },
+            {
+              "id": "right",
+              "component": "Button",
+              "child": "rightLabel",
+              "action": {
+                "functionCall": {
+                  "call": "push",
+                  "args": {
+                    "path": "/ui/press",
+                    "value": "right"
+                  }
+                }
+              }
+            },
+            {
+              "id": "rightLabel",
+              "component": "Text",
+              "text": "Right"
+            },
+            {
+              "id": "newGame",
+              "component": "Button",
+              "child": "newGameLabel",
+              "action": {
+                "functionCall": {
+                  "call": "push",
+                  "args": {
+                    "path": "/ui/press",
+                    "value": "go"
+                  }
+                }
+              }
+            },
+            {
+              "id": "newGameLabel",
+              "component": "Text",
+              "text": "New game"
+            }
+          ]
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateDataModel": {
+          "surfaceId": "snake",
+          "path": "/ui",
+          "value": {
+            "press": [],
+            "coded": {
+              "board": {
+                "state": {
+                  "score": 0,
+                  "alive": true,
+                  "dir": "right",
+                  "games": 0,
+                  "length": 3
+                },
+                "over": {
+                  "score": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "data": {
+    "version": 1,
+    "key": "snake.best",
+    "persist": "/saved",
+    "views": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "best": {
+          "type": "integer"
+        }
+      }
+    },
+    "initial": {
+      "best": 0
+    },
+    "migrations": []
+  },
+  "logic": {
+    "consts": {},
+    "functions": {},
+    "computed": {
+      "/computed/newBest": "ui.coded.board.over.score > saved.best ? ui.coded.board.over.score : saved.best"
+    },
+    "vectors": []
+  },
+  "network": [],
+  "journeys": [
+    {
+      "id": "J-1",
+      "title": "Play a game",
+      "steps": [
+        {
+          "id": "J-1.1",
+          "text": "Steer the snake with a swipe or the arrow buttons"
+        },
+        {
+          "id": "J-1.2",
+          "text": "Eat food to grow and score a point"
+        },
+        {
+          "id": "J-1.3",
+          "text": "Hitting a wall or itself ends the game"
+        },
+        {
+          "id": "J-1.4",
+          "text": "Start a new game"
+        }
+      ]
+    }
+  ],
+  "promises": [
+    {
+      "id": "P-1",
+      "text": "Your best score is kept on this phone, through a reload and every update",
+      "kind": "data"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-1",
+      "title": "The arrow buttons steer the snake",
+      "proves": ["J-1.1"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Down"
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.dir",
+          "equals": "down"
+        }
+      ]
+    },
+    {
+      "id": "T-2",
+      "title": "The snake eats the food ahead and grows, then ends at the wall",
+      "proves": ["J-1.2", "J-1.3"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 1000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.score",
+          "equals": 1
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.length",
+          "equals": 4
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": true
+        },
+        {
+          "do": "advance",
+          "ms": 1000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "id": "T-3",
+      "title": "New game starts again",
+      "proves": ["J-1.4"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 2000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "New game"
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 2
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": true
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.score",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "T-4",
+      "kind": "data",
+      "title": "The best score survives a reload",
+      "proves": ["P-1"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "setup": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 2000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        },
+        {
+          "expect": "state",
+          "path": "data.saved.best",
+          "equals": 1
+        }
+      ],
+      "check": [
+        {
+          "expect": "state",
+          "path": "data.saved.best",
+          "equals": 1
+        },
+        {
+          "expect": "see",
+          "text": "Best"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "snake": {
+      "kind": "coded",
+      "kit": "game",
+      "inputs": {
+        "press": "list"
+      },
+      "events": {
+        "over": {
+          "score": "number"
+        }
+      },
+      "code": "var N=12,s,dir,next,food,score,alive,games=0;\nvar D={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},BACK={up:\"down\",down:\"up\",left:\"right\",right:\"left\"};\nfunction hit(p){return s.some(function(c){return c.x===p.x&&c.y===p.y})}\nfunction place(){if(score===0){food={x:8,y:6};return}do{food={x:Math.floor(game.random()*N),y:Math.floor(game.random()*N)}}while(hit(food))}\nfunction show(){game.state={score:score,alive:alive,dir:next,games:games,length:s.length}}\nfunction reset(){s=[{x:4,y:6},{x:3,y:6},{x:2,y:6}];dir=next=\"right\";score=0;alive=true;games++;place();show()}\nfunction turn(d){if(alive&&D[d]&&d!==BACK[dir]){next=d;show()}}\ngame.on(\"swipe\",turn);\ngame.on(\"tap\",function(){if(!alive)reset()});\ngame.on(\"input\",function(name,v){if(name!==\"press\"||!v||!v.length)return;var last=v[v.length-1];if(last===\"go\"){if(!alive)reset()}else turn(last)});\ngame.start({rate:6,setup:reset,\nstep:function(){if(!alive)return;dir=next;var h={x:s[0].x+D[dir][0],y:s[0].y+D[dir][1]};\nif(h.x<0||h.y<0||h.x>=N||h.y>=N||hit(h)){alive=false;show();game.emit(\"over\",{score:score});return}\ns.unshift(h);if(h.x===food.x&&h.y===food.y){score++;place()}else s.pop();show()},\ndraw:function(g,w,h){var c=Math.min(w,h)/N;g.fillStyle=\"#0b1d1a\";g.fillRect(0,0,w,h);g.fillStyle=\"#f59e0b\";g.fillRect(food.x*c+2,food.y*c+2,c-4,c-4);\ng.fillStyle=alive?\"#14b8a6\":\"#64748b\";s.forEach(function(p){g.fillRect(p.x*c+1,p.y*c+1,c-2,c-2)});\nif(!alive){g.fillStyle=\"#ffffff\";g.font=\"bold \"+Math.round(c*0.9)+\"px system-ui\";g.textAlign=\"center\";g.fillText(\"Tap to play again\",w/2,h/2)}}});"
+    }
+  },
+  "mods": {
+    "open": ["/tokens/*"],
+    "locked": []
+  }
+}

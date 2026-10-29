@@ -5,8 +5,9 @@ import type { Problem } from "./a2ui.js";
 // classes, widget builders), secrets (well-known key formats, and long
 // high-entropy strings), personal details (emails, phone numbers) and internal
 // hosts. Pure, so CloudCrane and a Worker can run it too; Blackbox adds
-// secretlint's rules on top. CEL expressions are exempt from the code check
-// (they're the rules, by design) but not from the others.
+// secretlint's rules on top. CEL expressions and coded components' code are
+// exempt from the code check (they're rules and code by design) but not from
+// the others.
 
 type Rule = { kind: "path" | "code" | "secret" | "personal" | "host"; why: string; test: (s: string) => boolean };
 
@@ -108,6 +109,8 @@ const RULES: Rule[] = [
 const EXEMPT = new Set(["/manifest/source/fingerprint"]);
 /** Where CEL lives: rules may look like code there, but nothing else may. */
 const CEL_AT = [/^\/logic\/functions\/[^/]+\/cel$/, /^\/logic\/computed\/.+$/, /^\/data\/migrations\/\d+\/cel$/];
+/** A coded component's code: code by design (it runs sandboxed), so only the code rules skip it. */
+const CODE_AT = /^\/components\/[^/]+\/code$/;
 /** A test step's state path: a dotted path into what the app exposes (CloudCrane's form), which reads like a member access by design. */
 const STATE_PATH_AT = /^\/tests\/\d+\/(steps|setup|check)\/\d+\/path$/;
 const STATE_PATH = /^[A-Za-z0-9_$]+(\.[A-Za-z0-9_$]+)*$/;
@@ -136,7 +139,7 @@ export function leakProblems(spec: unknown): Problem[] {
     if (at.endsWith("#key") && at.startsWith("/logic/")) continue;
     // A2UI's bindings inside text (${/path}, ${fn(…)}) are the standard's syntax.
     const s = at.startsWith("/surface/") || at.startsWith("/data/views/") ? raw.replace(/\$\{[^}]*\}/g, " ") : raw;
-    const codeShaped = CEL_AT.some((r) => r.test(at)) || (STATE_PATH_AT.test(at) && STATE_PATH.test(raw));
+    const codeShaped = CEL_AT.some((r) => r.test(at)) || CODE_AT.test(at) || (STATE_PATH_AT.test(at) && STATE_PATH.test(raw));
     // Web addresses are checked as addresses (hosts, secrets), never as code.
     const withoutUrls = s.replace(/https?:\/\/[^\s"'<>]+/g, " ");
     for (const rule of RULES) {
