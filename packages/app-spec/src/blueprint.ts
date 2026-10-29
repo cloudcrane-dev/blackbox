@@ -14,6 +14,7 @@ export type BlueprintV1 = {
   journeys: Spec["journeys"];
   promises: Spec["promises"];
   network: Spec["network"];
+  uses?: Spec["uses"];
   icon?: string;
   category?: string;
   tags?: string[];
@@ -76,6 +77,7 @@ export function deriveBlueprint(spec: Spec): BlueprintV1 {
     journeys: spec.journeys,
     promises: spec.promises,
     network: spec.network,
+    ...(spec.uses.length ? { uses: spec.uses } : {}),
     ...(spec.module.icon ? { icon: spec.module.icon } : {}),
     ...(spec.module.category ? { category: spec.module.category } : {}),
     ...(spec.module.tags?.length ? { tags: spec.module.tags } : {}),

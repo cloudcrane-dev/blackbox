@@ -1,10 +1,21 @@
 import type { Spec } from "@cloudcrane/app-spec/schema";
+import { featuresOf, NEEDS_ORIGIN } from "@cloudcrane/app-spec/uses";
 import { GAME_KIT } from "./kit.js";
 
 // What the page takes from a coded component's frame, kept to what the spec
 // declared, and the frame's page. Pure, so it's tested without a browser.
 
 export type CodedDef = Spec["components"][string];
+
+/**
+ * What a component's frame may use: the browser features of the device
+ * features the spec declares (its `allow`), and for a page kit, the page's
+ * origin when the spec declares the camera or microphone, which the browser
+ * gives no frame without an origin of its own. A game kit always stays apart.
+ */
+export function frameOptions(def: CodedDef, uses: Spec["uses"]): { allow: string; sameOrigin: boolean } {
+  return { allow: featuresOf(uses).join("; "), sameOrigin: def.kit === "page" && uses.some((u) => NEEDS_ORIGIN.includes(u.what)) };
+}
 
 const OF_TYPE: Record<string, (v: unknown) => boolean> = {
   number: (v) => typeof v === "number" && Number.isFinite(v),

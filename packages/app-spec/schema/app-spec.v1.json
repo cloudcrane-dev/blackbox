@@ -333,6 +333,40 @@
       "maxItems": 5,
       "default": []
     },
+    "uses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "what": {
+            "type": "string",
+            "enum": [
+              "camera",
+              "microphone",
+              "location",
+              "motion",
+              "screen-awake",
+              "gamepad",
+              "voice",
+              "contacts",
+              "nfc"
+            ]
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "what",
+          "why"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 9,
+      "default": []
+    },
     "journeys": {
       "type": "array",
       "items": {

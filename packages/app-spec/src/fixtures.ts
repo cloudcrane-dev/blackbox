@@ -8,7 +8,7 @@ export const CATALOG = "https://a2ui.org/specification/v0_9/catalogs/basic/catal
 export function sampleSpec(): Spec {
   return {
     v: 1,
-    manifest: { runtime: "0.3.0", generator: "blackbox@0.3.0", source: { fingerprint: `sha256:${"0".repeat(64)}` } },
+    manifest: { runtime: "0.4.0", generator: "blackbox@0.4.0", source: { fingerprint: `sha256:${"0".repeat(64)}` } },
     module: { id: "plans", name: "Workout log", purpose: "Plan today's exercises and tick them off." },
     tokens: {
       color: {
@@ -52,6 +52,7 @@ export function sampleSpec(): Spec {
       vectors: [{ fn: "isStreakBroken", in: [4, 2, true], out: true, from: "recorded" }],
     },
     network: [],
+    uses: [],
     journeys: [{ id: "J-1", title: "Do today's workout", steps: [{ id: "J-1.1", text: "Tick an exercise off when it's done" }] }],
     promises: [{ id: "P-1", text: "Ticks saved on this phone survive a reload", kind: "data" }],
     tests: [],

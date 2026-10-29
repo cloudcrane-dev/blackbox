@@ -2,14 +2,18 @@ import { useEffect, useRef } from "preact/hooks";
 import { z } from "zod";
 import { CommonSchemas } from "@a2ui/web_core/v0_9";
 import { createComponentImplementation } from "@a2ui/react/v0_9";
-import { cleanEvent, cleanState, frameHtml, storeMessage, type CodedDef } from "./coded.js";
+import type { Spec } from "@cloudcrane/app-spec/schema";
+import { cleanEvent, cleanState, frameHtml, frameOptions, storeMessage, type CodedDef } from "./coded.js";
 
 // Coded: places one of the spec's coded components. Its code runs in a frame
 // that's sandboxed (scripts only, so its origin is opaque: no storage, nothing
 // of the page's), out of the page's reach (a closed shadow root), and reached
 // only through a MessagePort. Where CloudCrane's lockdown is in the page, it
 // makes that frame (window.__ccFrame), with the lockdown inside too; elsewhere
-// (a preview) the runtime makes the same kind of frame itself.
+// (a preview) the runtime makes the same kind of frame itself. The frame is
+// allowed the device features the spec declares; a page kit whose spec
+// declares the camera or microphone gets the page's origin, which the browser
+// requires for them (see frameOptions).
 //
 // The page drives it: a seed and the inputs once, then the clock each frame,
 // paused while the app is hidden. What comes back is kept to what the spec
@@ -35,8 +39,8 @@ type Props = {
   on?: { name: string; action: () => Promise<void> }[];
 };
 
-type Env = { components: Record<string, CodedDef>; set(path: string, value: unknown): void; dataKey: string };
-let env: Env = { components: {}, set() {}, dataKey: "app" };
+type Env = { components: Record<string, CodedDef>; set(path: string, value: unknown): void; dataKey: string; uses: Spec["uses"] };
+let env: Env = { components: {}, set() {}, dataKey: "app", uses: [] };
 
 /** Where a component's localStorage is kept on the page: beside the app's own data, one key per component. */
 const storeKeyOf = (use: string) => `${env.dataKey}.coded.${use}`;
@@ -54,15 +58,17 @@ export function setCodedEnv(e: Env): void {
   env = e;
 }
 
-type Maker = (into: Element, html: string) => MessagePort;
+type Options = { allow: string; sameOrigin: boolean };
+type Maker = (into: Element, html: string, options: Options) => MessagePort;
 
 /** The same frame the lockdown makes, for a page without it. */
-const ownFrame: Maker = (into, html) => {
+const ownFrame: Maker = (into, html, { allow, sameOrigin }) => {
   const host = document.createElement("div");
   host.style.cssText = "display:block;width:100%;height:100%";
   const root = host.attachShadow({ mode: "closed" });
   const f = document.createElement("iframe");
-  f.setAttribute("sandbox", "allow-scripts");
+  f.setAttribute("sandbox", sameOrigin ? "allow-scripts allow-same-origin" : "allow-scripts");
+  if (allow) f.setAttribute("allow", allow);
   f.setAttribute("title", "Custom part of this app");
   f.setAttribute("style", "border:0;display:block;width:100%;height:100%");
   f.setAttribute("srcdoc", html);
@@ -73,9 +79,10 @@ const ownFrame: Maker = (into, html) => {
   return ch.port1;
 };
 
-const makeFrame: Maker = (into, html) => {
+// The lockdown's maker decides for itself what the frame may use, from what the app's version declares; these are what the page asks for.
+const makeFrame: Maker = (into, html, options) => {
   const lockdowns = (window as { __ccFrame?: Maker }).__ccFrame;
-  return typeof lockdowns === "function" ? lockdowns(into, html) : ownFrame(into, html);
+  return typeof lockdowns === "function" ? lockdowns(into, html, options) : ownFrame(into, html, options);
 };
 
 const inputsOf = (p: Props) => Object.fromEntries((p.inputs ?? []).map((i) => [i.name, i.value]));
@@ -94,7 +101,7 @@ export const Coded = createComponentImplementation(CodedApi, ({ props, context }
     if (!def || !box.current) return;
     const at = `/ui/coded/${id}`;
     let kept = readStore(p.use);
-    const ch = makeFrame(box.current, frameHtml(def, kept));
+    const ch = makeFrame(box.current, frameHtml(def, kept), frameOptions(def, env.uses));
     port.current = ch;
     let lastState = "";
     ch.onmessage = (e: MessageEvent) => {

@@ -1,6 +1,7 @@
 import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
-import { bridgeScript, cleanEvent, cleanState, frameHtml, storeMessage } from "./coded.js";
+import { bridgeScript, cleanEvent, cleanState, frameHtml, frameOptions, storeMessage } from "./coded.js";
+import type { Use } from "@cloudcrane/app-spec/uses";
 import { GAME_KIT } from "./kit.js";
 
 // A coded component runs in a sandboxed frame and talks to the page only by
@@ -188,5 +189,24 @@ describe("the game kit", () => {
     f.page({ input: { name: "dir", value: "up" } });
     expect(heard).toEqual([["dir", "up"]]);
     expect(f.game.inputs["dir"]).toBe("up");
+  });
+});
+
+describe("what a component's frame may use", () => {
+  const uses = (...what: Use[]) => what.map((w) => ({ what: w, why: "x" }));
+  it("allows the browser features of the device features the spec declares, and no others", () => {
+    expect(frameOptions(over, [])).toEqual({ allow: "", sameOrigin: false });
+    expect(frameOptions(over, uses("location", "motion"))).toEqual({ allow: "geolocation; accelerometer; gyroscope; magnetometer", sameOrigin: false });
+    // A feature two declared uses need (the microphone, for microphone and voice) is named once.
+    expect(frameOptions(page, uses("microphone", "voice")).allow).toBe("microphone");
+    expect(frameOptions(page, uses("contacts", "nfc")).allow).toBe("");
+  });
+
+  it("gives a page kit the page's origin only when the spec declares the camera or microphone, which a frame with none can't use", () => {
+    expect(frameOptions(page, uses("location"))).toMatchObject({ sameOrigin: false });
+    expect(frameOptions(page, uses("camera"))).toEqual({ allow: "camera", sameOrigin: true });
+    expect(frameOptions(page, uses("microphone"))).toMatchObject({ sameOrigin: true });
+    // A game kit never: it stays apart from the page whatever the spec says.
+    expect(frameOptions(over, uses("camera"))).toMatchObject({ sameOrigin: false });
   });
 });

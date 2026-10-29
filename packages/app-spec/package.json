@@ -1,6 +1,6 @@
 {
   "name": "@cloudcrane/app-spec",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The CloudCrane app spec: its schema, the expression language its rules are written in, and the checks that keep partner code out of it.",
   "keywords": [
     "cloudcrane",
@@ -31,6 +31,7 @@
     "./catalog": "./src/catalog.ts",
     "./schema": "./src/schema.ts",
     "./blueprint": "./src/blueprint.ts",
+    "./uses": "./src/uses.ts",
     "./schema.json": "./schema/app-spec.v1.json",
     "./package.json": "./package.json"
   },
@@ -83,6 +84,10 @@
       "./blueprint": {
         "types": "./dist/src/blueprint.d.ts",
         "default": "./dist/src/blueprint.js"
+      },
+      "./uses": {
+        "types": "./dist/src/uses.d.ts",
+        "default": "./dist/src/uses.js"
       },
       "./schema.json": "./schema/app-spec.v1.json",
       "./package.json": "./package.json"
