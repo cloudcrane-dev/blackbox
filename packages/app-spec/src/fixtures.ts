@@ -55,6 +55,7 @@ export function sampleSpec(): Spec {
     journeys: [{ id: "J-1", title: "Do today's workout", steps: [{ id: "J-1.1", text: "Tick an exercise off when it's done" }] }],
     promises: [{ id: "P-1", text: "Ticks saved on this phone survive a reload", kind: "data" }],
     tests: [],
+    components: {},
     mods: { open: ["/tokens/*"], locked: ["/network/*"] },
   };
 }

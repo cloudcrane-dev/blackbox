@@ -11,6 +11,8 @@ import { BASIC_CATALOG, type Catalog } from "./a2ui.js";
 // Components:
 //   DateStrip: the last N days as chips, today on the right, one selectable,
 //   each with a status dot.
+//   Coded: places one of the spec's coded components, sandboxed in a frame; its
+//   state shows at /ui/coded/<id>/state.
 
 export const CLOUDCRANE_CATALOG_ID = "https://cloudcrane.ai/catalogs/app/v1.json";
 const COMMON = "https://a2ui.org/specification/v0_9/common_types.json#/$defs";
@@ -67,6 +69,46 @@ const COMPONENTS = {
     ],
     unevaluatedProperties: false,
   },
+  Coded: {
+    type: "object",
+    allOf: [
+      { $ref: `${COMMON}/ComponentCommon` },
+      { $ref: "#/$defs/CatalogComponentCommon" },
+      {
+        type: "object",
+        properties: {
+          component: { const: "Coded" },
+          use: { type: "string", pattern: "^[a-z][a-zA-Z0-9_.-]{0,63}$", description: "The coded component to place, by its name in the spec's components." },
+          label: { $ref: `${COMMON}/DynamicString`, description: "What it is, for people who can't see it." },
+          aspect: { type: "number", minimum: 0.25, maximum: 4, description: "Width over height; 1 (square) if left out." },
+          inputs: {
+            type: "array",
+            maxItems: 10,
+            description: "What it's given, each a declared input bound to the data model.",
+            items: {
+              type: "object",
+              properties: { name: { type: "string" }, value: { $ref: `${COMMON}/DynamicValue` } },
+              required: ["name", "value"],
+              additionalProperties: false,
+            },
+          },
+          on: {
+            type: "array",
+            maxItems: 10,
+            description: "What happens when it sends a declared event; the event's fields are at /ui/coded/<this id>/<event> while the action runs.",
+            items: {
+              type: "object",
+              properties: { name: { type: "string" }, action: { $ref: `${COMMON}/Action` } },
+              required: ["name", "action"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["component", "use", "label"],
+      },
+    ],
+    unevaluatedProperties: false,
+  },
 };
 
 /** The CloudCrane catalog document, built from A2UI's basic catalog. */
@@ -85,7 +127,7 @@ export function cloudcraneCatalog(): Catalog {
     $id: CLOUDCRANE_CATALOG_ID,
     catalogId: CLOUDCRANE_CATALOG_ID,
     title: "CloudCrane app catalog",
-    description: "A2UI's basic catalog, plus local actions (set, push, removeAt, batch) and DateStrip, for apps that run on a phone.",
+    description: "A2UI's basic catalog, plus local actions (set, push, removeAt, batch), DateStrip and Coded, for apps that run on a phone.",
   };
 }
 
