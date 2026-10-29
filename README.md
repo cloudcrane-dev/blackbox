@@ -19,6 +19,10 @@ your repo ──blackbox extract──▶ spec.json + provenance.json ──blac
   A whole HTML app can be one too, with the page kit: it runs full screen and
   its `localStorage` works, kept by the page. See
   [`fixtures/notes`](fixtures/notes/spec.json).
+- **An HTML app is a spec too.** `wrapPage` makes one whose `page` names its
+  one page-kit component; the compiler gives back that page exactly as
+  written, with no runtime, so the app runs, saves and is tested as it would
+  on its own.
 - **`provenance.json`** stays with you. It points every part of the spec at the
   lines of your code it came from, so `blackbox diff` can tell which parts a
   change touched.

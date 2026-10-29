@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { canonical, validateSpec, type Spec } from "@cloudcrane/app-spec";
+import { canonical, pageOf, validateSpec, type Spec } from "@cloudcrane/app-spec";
 import { CODED_CSS, DATESTRIP_CSS } from "../runtime/styles.js";
 import { tokensCss } from "../runtime/theme.js";
 import { RUNTIME_JS, RUNTIME_SHA256, RUNTIME_VERSION } from "./runtime.generated.js";
@@ -18,6 +18,7 @@ export class CompileError extends Error {
 
 /** Where a page that links the runtime finds it, and the hash its bytes must have. */
 export type LinkedRuntime = { path: string; integrity: string };
+/** `runtime` names the runtime the page carries, or is "page" for an HTML app's spec, which is its page as written, with none. */
 export type Compiled = { html: string; sha256: string; runtime: string; linked?: LinkedRuntime };
 
 /**
@@ -56,6 +57,9 @@ export function compile(input: unknown, options: CompileOptions = {}): Compiled 
   if (mode !== "inline" && mode !== "shared") throw new TypeError("The runtime is inline or shared.");
   const { spec, problems } = validateSpec(input);
   if (!spec) throw new CompileError(problems);
+  // A spec that is an HTML app's page is that page, as written: no runtime, so any runtime version builds it the same.
+  const page = pageOf(spec);
+  if (page !== null) return { html: page, sha256: createHash("sha256").update(page).digest("hex"), runtime: "page" };
   if (spec.manifest.runtime !== RUNTIME_VERSION)
     throw new CompileError([{ at: "manifest.runtime", problem: `this compiler builds runtime ${RUNTIME_VERSION}` }]);
   // Only what drawing the app needs goes in the page: not the journeys, promises or tests.

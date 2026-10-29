@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { compile, CompileError, runtimeFile } from "./compile.js";
 import { RUNTIME_JS, RUNTIME_SHA256, RUNTIME_VERSION } from "./runtime.generated.js";
 import { createHash } from "node:crypto";
+import { wrapPage } from "@cloudcrane/app-spec";
 
 // The compiler is a pure function: the same spec always gives the same page
 // (golden hashes pin it), it refuses what it can't build, it keeps the page in
@@ -94,5 +95,24 @@ describe("the compiler", () => {
     const { html } = compile(habits());
     const data = JSON.parse(html.match(/<script type="application\/json" id="cc-spec">([\s\S]*?)<\/script>/)![1]!);
     expect(Object.keys(data).sort()).toEqual(["data", "logic", "module", "surface"]);
+  });
+
+  it("gives back an HTML app's page as written, with no runtime, for any runtime the spec names", () => {
+    const html = '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main>Hi</main></body></html>';
+    const app = {
+      id: "hello",
+      name: "Hello",
+      purpose: "Says hello.",
+      html,
+      generator: "cloudcrane, from an HTML app",
+      data: { version: 1, key: "hello" },
+      journeys: [{ id: "J-1", title: "Open it", steps: [{ id: "J-1.1", text: "See hello" }] }],
+    };
+    for (const runtime of [RUNTIME_VERSION, "0.0.0"]) {
+      for (const mode of ["inline", "shared"] as const) {
+        const out = compile(wrapPage({ ...app, runtime }), { runtime: mode });
+        expect(out).toEqual({ html, sha256: createHash("sha256").update(html).digest("hex"), runtime: "page" });
+      }
+    }
   });
 });
