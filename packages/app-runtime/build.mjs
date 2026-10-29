@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+// The runtime's own version, which changes only when the bundle does (the package may release without it).
+const { runtimeVersion: version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 const result = await build({
   entryPoints: ["src/runtime/main.tsx"],
   bundle: true,

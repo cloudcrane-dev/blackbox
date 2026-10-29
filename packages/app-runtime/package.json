@@ -1,6 +1,7 @@
 {
   "name": "@cloudcrane/app-runtime",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "runtimeVersion": "0.2.0",
   "description": "Builds a CloudCrane app spec into one HTML page, the same bytes every time, and the runtime that draws it with A2UI's renderer.",
   "keywords": [
     "cloudcrane",

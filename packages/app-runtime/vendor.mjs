@@ -30,7 +30,7 @@ const files = { "blackbox.mjs": result.outputFiles[0].text, "blackbox.d.mts": re
 for (const [name, text] of Object.entries(files)) writeFileSync(join(out, name), text);
 const sha = (s) => createHash("sha256").update(s).digest("hex");
 const git = (...a) => execFileSync("git", a, { encoding: "utf8" }).trim();
-const { version } = JSON.parse(readFileSync("package.json", "utf8"));
+const { runtimeVersion: version } = JSON.parse(readFileSync("package.json", "utf8"));
 const vendor = {
   from: "blackbox (packages/app-runtime/src/host.ts)",
   commit: git("rev-parse", "HEAD"),

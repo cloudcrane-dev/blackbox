@@ -16,7 +16,28 @@ export class CompileError extends Error {
   }
 }
 
-export type Compiled = { html: string; sha256: string; runtime: string };
+/** Where a page that links the runtime finds it, and the hash its bytes must have. */
+export type LinkedRuntime = { path: string; integrity: string };
+export type Compiled = { html: string; sha256: string; runtime: string; linked?: LinkedRuntime };
+
+/**
+ * How a page carries the runtime: inline (the default: the page stands alone,
+ * as blackbox preview and anyone hosting it themselves need) or shared (it
+ * links one file every spec app on a host shares, which the host serves from
+ * runtimeFile(); the integrity hash means a browser runs nothing else).
+ */
+export type CompileOptions = { runtime?: "inline" | "shared" };
+
+let file: (LinkedRuntime & { js: string }) | undefined;
+/** The runtime as the file a shared page links: its path (named by version and hash), its bytes and their integrity hash. */
+export function runtimeFile(): LinkedRuntime & { js: string } {
+  file ??= {
+    path: `/_cc/runtime/${RUNTIME_VERSION}-${RUNTIME_SHA256.slice(0, 12)}.js`,
+    js: RUNTIME_JS,
+    integrity: `sha256-${createHash("sha256").update(RUNTIME_JS).digest("base64")}`,
+  };
+  return file;
+}
 
 /** The page's base: the tokens set A2UI's variables; this lays out the page around the surface. */
 const BASE_CSS =
@@ -30,7 +51,9 @@ const scriptSafe = (json: string) =>
     .replace(new RegExp(String.fromCharCode(0x2028), "g"), "\\u2028")
     .replace(new RegExp(String.fromCharCode(0x2029), "g"), "\\u2029");
 
-export function compile(input: unknown): Compiled {
+export function compile(input: unknown, options: CompileOptions = {}): Compiled {
+  const mode = options.runtime ?? "inline";
+  if (mode !== "inline" && mode !== "shared") throw new TypeError("The runtime is inline or shared.");
   const { spec, problems } = validateSpec(input);
   if (!spec) throw new CompileError(problems);
   if (spec.manifest.runtime !== RUNTIME_VERSION)
@@ -53,11 +76,14 @@ export function compile(input: unknown): Compiled {
     `<style>${tokensCss(spec.tokens)}${BASE_CSS}${DATESTRIP_CSS}${CODED_CSS}</style>` +
     '</head><body><main id="app"></main>' +
     `<script type="application/json" id="cc-spec">${scriptSafe(canonical(inPage))}</script>` +
-    `<script type="module">${RUNTIME_JS}</script>` +
+    (mode === "shared"
+      ? `<script type="module" src="${runtimeFile().path}" integrity="${runtimeFile().integrity}"></script>`
+      : `<script type="module">${RUNTIME_JS}</script>`) +
     "</body></html>\n";
   return {
     html,
     sha256: createHash("sha256").update(html).digest("hex"),
     runtime: `@cloudcrane/app-runtime@${RUNTIME_VERSION}+${RUNTIME_SHA256.slice(0, 12)}`,
+    ...(mode === "shared" ? { linked: { path: runtimeFile().path, integrity: runtimeFile().integrity } } : {}),
   };
 }

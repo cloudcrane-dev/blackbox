@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { compile, CompileError } from "./compile.js";
+import { compile, CompileError, runtimeFile } from "./compile.js";
 import { RUNTIME_JS, RUNTIME_SHA256, RUNTIME_VERSION } from "./runtime.generated.js";
 import { createHash } from "node:crypto";
 
@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 const ROOT = new URL("../../../../", import.meta.url);
 const habits = () => JSON.parse(readFileSync(new URL("fixtures/habits/spec.json", ROOT), "utf8"));
 const GOLDEN = new URL("../../golden/habits.sha256", import.meta.url);
+const GOLDEN_SHARED = new URL("../../golden/habits.shared.sha256", import.meta.url);
 
 describe("the compiler", () => {
   it("gives the same page for the same spec, whatever its key order", () => {
@@ -34,6 +35,26 @@ describe("the compiler", () => {
     const { sha256 } = compile(habits());
     if (process.env["UPDATE_GOLDEN"] === "1") writeFileSync(GOLDEN, `${sha256}\n`);
     expect(readFileSync(GOLDEN, "utf8").trim()).toBe(sha256);
+  });
+
+  it("can link the runtime instead of inlining it: one file, named by version and hash, held to its bytes by an integrity hash", () => {
+    const file = runtimeFile();
+    expect(file.js).toBe(RUNTIME_JS);
+    expect(file.path).toBe(`/_cc/runtime/${RUNTIME_VERSION}-${RUNTIME_SHA256.slice(0, 12)}.js`);
+    expect(file.integrity).toBe(`sha256-${createHash("sha256").update(RUNTIME_JS).digest("base64")}`);
+
+    const shared = compile(habits(), { runtime: "shared" });
+    expect(shared.html).not.toContain(RUNTIME_JS.slice(0, 200));
+    expect(shared.html).toContain(`<script type="module" src="${file.path}" integrity="${file.integrity}"></script>`);
+    expect(shared.linked).toEqual({ path: file.path, integrity: file.integrity });
+    expect(Buffer.byteLength(shared.html)).toBeLessThan(64 * 1024);
+    expect(compile(habits(), { runtime: "shared" }).sha256).toBe(shared.sha256);
+    if (process.env["UPDATE_GOLDEN"] === "1") writeFileSync(GOLDEN_SHARED, `${shared.sha256}\n`);
+    expect(readFileSync(GOLDEN_SHARED, "utf8").trim()).toBe(shared.sha256);
+    // Inline is the default, and links nothing.
+    expect(compile(habits(), { runtime: "inline" }).html).toBe(compile(habits()).html);
+    expect(compile(habits()).linked).toBeUndefined();
+    expect(() => compile(habits(), { runtime: "cdn" as never })).toThrow(/inline or shared/);
   });
 
   it("inlines the runtime it was locked to, and names it", () => {
