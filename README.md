@@ -16,7 +16,7 @@ your repo ──blackbox extract──▶ spec.json + provenance.json ──blac
   lines of your code it came from, so `blackbox diff` can tell which parts a
   change touched.
 - **The compiler** turns a spec into one HTML page, byte for byte the same for
-  the same spec and runtime version. It writes no code and uses no AI. CloudCrane's spec publishing (in development) builds with this same compiler, so
+  the same spec and runtime version. It writes no code and uses no AI. CloudCrane builds published specs with this same compiler, so
   what you preview is what people will install.
 
 ## Packages
