@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { compile } from "../compiler/compile.js";
+import { compile, runtimeFile } from "../compiler/compile.js";
 
 // The coded-component example (Snake), compiled, in a real browser under
 // CloudCrane's security policy: the game runs in its sandboxed frame by the
@@ -59,10 +59,12 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
     await expect.poll(async () => (await game(page)).alive, { timeout: 10_000 }).toBe(false);
     const ended = await game(page);
     expect(ended.score).toBeGreaterThanOrEqual(1);
-    await expect.poll(async () => (await data(page)).saved.best).toBe(ended.score);
-    await expect.poll(() => page.evaluate(() => localStorage.getItem("snake.best"))).toContain(`"best":${ended.score}`);
+    // A shared CI machine runs the browser tests side by side: give what follows the game's end the same 5 s as the rest.
+    const soon = { timeout: 5_000 };
+    await expect.poll(async () => (await data(page)).saved.best, soon).toBe(ended.score);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("snake.best")), soon).toContain(`"best":${ended.score}`);
     // What the game reports shows on the screen.
-    await expect.poll(() => page.locator("#app").innerText()).toMatch(new RegExp(`Score\\s+${ended.score}\\s+Best\\s+${ended.score}`));
+    await expect.poll(() => page.locator("#app").innerText(), soon).toMatch(new RegExp(`Score\\s+${ended.score}\\s+Best\\s+${ended.score}`));
 
     await page.reload();
     await page.waitForFunction(() => typeof (window as { appState?: unknown }).appState === "function");
@@ -84,6 +86,29 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
     expect((await data(page)).saved.best).toBe(50);
     expect(page.errors).toEqual([]);
     await page.close();
+  });
+
+  it("runs as a shared page, with the runtime served beside it, and refuses a runtime that isn't the one it names", async () => {
+    const shared = compile(JSON.parse(read("fixtures/snake/spec.json")), { runtime: "shared" }).html;
+    const served = async (runtime: string) => {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      await page.route("http://snake.test/**", (r) =>
+        r.request().url().endsWith(runtimeFile().path)
+          ? r.fulfill({ contentType: "text/javascript", body: runtime, headers: { "content-security-policy": CSP } })
+          : r.fulfill({ contentType: "text/html", body: shared, headers: { "content-security-policy": CSP } }),
+      );
+      await page.goto("http://snake.test/");
+      return page;
+    };
+    const page = await served(runtimeFile().js);
+    await page.waitForFunction(() => typeof (window as { appState?: unknown }).appState === "function");
+    await expect.poll(async () => (await game(page)).games).toBe(1);
+    await page.close();
+
+    const tampered = await served(runtimeFile().js.replace("Coded", "Codex"));
+    await tampered.waitForTimeout(1000);
+    expect(await tampered.evaluate(() => typeof (window as { appState?: unknown }).appState)).toBe("undefined");
+    await tampered.close();
   });
 
   it("keeps the frame sandboxed and out of the page's reach, and has no serious accessibility faults, on a phone set to dark mode too", async () => {

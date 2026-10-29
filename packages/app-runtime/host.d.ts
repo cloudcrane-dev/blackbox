@@ -28,12 +28,15 @@ export type BlueprintV1 = {
   design: { palette: string[]; notes: string };
 };
 
-export type Compiled = { html: string; sha256: string; runtime: string };
+export type LinkedRuntime = { path: string; integrity: string };
+export type Compiled = { html: string; sha256: string; runtime: string; linked?: LinkedRuntime };
+export type CompileOptions = { runtime?: "inline" | "shared" };
 
 export function validateSpec(input: unknown): { spec: Spec | null; problems: Problem[] };
 export function leakProblems(spec: unknown): Problem[];
 export function deriveBlueprint(spec: Spec): BlueprintV1;
-export function compile(input: unknown): Compiled;
+export function compile(input: unknown, options?: CompileOptions): Compiled;
+export function runtimeFile(): LinkedRuntime & { js: string };
 export class CompileError extends Error {
   readonly problems: Problem[];
 }

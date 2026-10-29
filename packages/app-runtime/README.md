@@ -14,8 +14,15 @@ const { html, sha256, runtime } = compile(spec);
 - `compile(spec)` returns the page, its sha256 and the runtime it was built
   with (`@cloudcrane/app-runtime@0.2.0+<hash>`); it throws `CompileError`
   listing every problem when the spec doesn't validate.
+- `compile(spec, { runtime: "shared" })` links the runtime instead of inlining
+  it: the page names `runtimeFile().path` (`/_cc/runtime/<version>-<hash>.js`)
+  with an integrity hash, so a host serves one copy to every spec app and a
+  browser runs nothing but those bytes. The page is then a few KB. Inline is
+  the default, for a page that stands alone.
 - Each runtime version is locked to one bundle hash (`runtime-lock.json`), so a
-  version always draws apps the same way.
+  version always draws apps the same way. The runtime's version
+  (`runtimeVersion` in package.json) moves only when the bundle does; the
+  package can release without it.
 - A coded component runs in a frame that's sandboxed (scripts only, so it has
   no storage and nothing of the page's), in a closed shadow root, reached only
   through a `MessagePort`. Under CloudCrane's lockdown the lockdown makes the
