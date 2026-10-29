@@ -20,10 +20,11 @@ function send(m){if(port)port.postMessage(m);else out.push(m)}
 function fire(n,a,b){(on[n]||[]).forEach(function(f){f(a,b)})}
 function fit(){var r=Math.min(window.devicePixelRatio||1,3);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*r);cv.height=Math.round(H*r);g.setTransform(r,0,0,r,0,0)}
 function report(){if(!game.state||typeof game.state!=="object")return;var s;try{s=JSON.stringify(game.state)}catch(e){return}if(s!==undefined&&s!==last){last=s;send({state:JSON.parse(s)})}}
-function begin(){if(begun||!ready||!opts)return;begun=true;fit();if(opts.setup)opts.setup();report()}
+function paint(){if(opts.draw){g.clearRect(0,0,W,H);opts.draw(g,W,H)}}
+function begin(){if(begun||!ready||!opts)return;begun=true;fit();if(opts.setup)opts.setup();paint();report()}
 function frame(dt){if(!begun||game.paused)return;var each=1000/rate,n=0;acc+=Math.max(0,Math.min(dt,60000));
 while(acc>=each&&n<rate*60){acc-=each;n++;if(opts.step)opts.step()}if(acc>=each)acc=0;
-if(opts.draw){g.clearRect(0,0,W,H);opts.draw(g,W,H)}report()}
+paint();report()}
 var game={inputs:{},state:null,paused:false,
 start:function(o){opts=o||{};rate=Math.max(1,Math.min(60,Number(opts.rate)||10));begin()},
 on:function(n,f){(on[n]=on[n]||[]).push(f)},
@@ -37,7 +38,7 @@ if(d.input){game.inputs[d.input.name]=d.input.value;fire("input",d.input.name,d.
 if(typeof d.tick==="number")frame(d.tick);
 if(typeof d.visible==="boolean")game.paused=!d.visible};
 var q=out;out=[];q.forEach(send)});
-addEventListener("resize",function(){if(begun)fit()});
+addEventListener("resize",function(){if(begun){fit();paint()}});
 var x0,y0,t0;
 cv.addEventListener("pointerdown",function(e){x0=e.offsetX;y0=e.offsetY;t0=e.timeStamp});
 cv.addEventListener("pointerup",function(e){if(x0===undefined)return;var dx=e.offsetX-x0,dy=e.offsetY-y0;

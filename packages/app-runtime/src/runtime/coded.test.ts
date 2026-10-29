@@ -96,6 +96,17 @@ describe("the game kit", () => {
     expect(steps).toBe(11);
   });
 
+  it("draws once as soon as it's set up, before the first tick", () => {
+    const f = kitFrame();
+    let draws = 0;
+    f.game.start({ setup: () => {}, draw: () => draws++ });
+    f.connect();
+    f.page({ init: { seed: 1, inputs: {} } });
+    expect(draws).toBe(1);
+    f.page({ tick: 16 });
+    expect(draws).toBe(2);
+  });
+
   it("gives the same random numbers for the same seed", () => {
     const run = (seed: number) => {
       const f = kitFrame();

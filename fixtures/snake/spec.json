@@ -346,7 +346,157 @@
       "kind": "data"
     }
   ],
-  "tests": [],
+  "tests": [
+    {
+      "id": "T-1",
+      "title": "The arrow buttons steer the snake",
+      "proves": ["J-1.1"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "Down"
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.dir",
+          "equals": "down"
+        }
+      ]
+    },
+    {
+      "id": "T-2",
+      "title": "The snake eats the food ahead and grows, then ends at the wall",
+      "proves": ["J-1.2", "J-1.3"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 1000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.score",
+          "equals": 1
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.length",
+          "equals": 4
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": true
+        },
+        {
+          "do": "advance",
+          "ms": 1000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "id": "T-3",
+      "title": "New game starts again",
+      "proves": ["J-1.4"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "steps": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 2000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        },
+        {
+          "do": "tap",
+          "role": "button",
+          "name": "New game"
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 2
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": true
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.score",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "T-4",
+      "kind": "data",
+      "title": "The best score survives a reload",
+      "proves": ["P-1"],
+      "clock": "2026-10-29T12:00:00Z",
+      "seed": 1,
+      "setup": [
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.games",
+          "equals": 1
+        },
+        {
+          "do": "advance",
+          "ms": 2000
+        },
+        {
+          "expect": "state",
+          "path": "data.ui.coded.board.state.alive",
+          "equals": false
+        },
+        {
+          "expect": "state",
+          "path": "data.saved.best",
+          "equals": 1
+        }
+      ],
+      "check": [
+        {
+          "expect": "state",
+          "path": "data.saved.best",
+          "equals": 1
+        },
+        {
+          "expect": "see",
+          "text": "Best"
+        }
+      ]
+    }
+  ],
   "components": {
     "snake": {
       "kind": "coded",

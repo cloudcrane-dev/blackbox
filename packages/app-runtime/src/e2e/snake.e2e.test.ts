@@ -36,8 +36,8 @@ afterAll(async () => browser?.close());
 type Game = { score: number; alive: boolean; dir: string; games: number; length: number };
 type Data = { saved: { best: number }; ui: { coded: { board: { state: Game } } } };
 
-async function open(saved?: { best: number }): Promise<Page & { errors: string[] }> {
-  const page = (await browser.newPage({ viewport: { width: 390, height: 844 } })) as Page & { errors: string[] };
+async function open(saved?: { best: number }, colorScheme: "light" | "dark" = "light"): Promise<Page & { errors: string[] }> {
+  const page = (await browser.newPage({ viewport: { width: 390, height: 844 }, colorScheme })) as Page & { errors: string[] };
   await page.route("http://snake.test/**", (r) => r.fulfill({ contentType: "text/html", body: compiled, headers: { "content-security-policy": CSP } }));
   // Init scripts run in every frame; the game's, sandboxed, has no storage to seed.
   if (saved) await page.addInitScript((s) => window === window.top && localStorage.setItem("snake.best", JSON.stringify({ v: 1, ...s })), saved);
@@ -86,8 +86,9 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
     await page.close();
   });
 
-  it("keeps the frame sandboxed and out of the page's reach, and has no serious accessibility faults", async () => {
-    const page = await open();
+  it("keeps the frame sandboxed and out of the page's reach, and has no serious accessibility faults, on a phone set to dark mode too", async () => {
+    // The spec draws a light page; A2UI's defaults (a plain button's text) must follow the page, not the phone's setting.
+    const page = await open(undefined, "dark");
     await expect.poll(async () => (await game(page)).games).toBe(1);
     const seen = await page.evaluate(() => {
       const board = document.querySelector(".cc-coded")!;

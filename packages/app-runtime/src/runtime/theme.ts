@@ -42,9 +42,34 @@ export function tokenVariables(tokens: TokenNode): [string, string][] {
   return out.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** The tokens as a :root rule. */
+/** A colour's relative lightness, 0 to 1, from #rgb, #rrggbb or rgb(r g b); null for anything else. */
+function lightness(css: string): number | null {
+  let rgb: number[] | null = null;
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(css.trim());
+  if (hex) {
+    const h = hex[1]!.length === 3 ? [...hex[1]!].map((c) => c + c).join("") : hex[1]!;
+    rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  }
+  const fn = /^rgb\(\s*(\d+)\s+(\d+)\s+(\d+)/.exec(css.trim());
+  if (fn) rgb = fn.slice(1, 4).map(Number);
+  if (!rgb) return null;
+  const [r, g, b] = rgb.map((c) => {
+    const x = c / 255;
+    return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+/**
+ * The tokens as a :root rule, with the page's colour scheme taken from its own
+ * background: A2UI's defaults for what a spec leaves out (a plain button's
+ * text) are light-dark() pairs, which would otherwise follow the phone's
+ * setting and put light text on a light page. Light unless the background is dark.
+ */
 export function tokensCss(tokens: TokenNode): string {
-  return `:root{${tokenVariables(tokens)
-    .map(([k, v]) => `${k}:${v};`)
-    .join("")}}`;
+  const vars = tokenVariables(tokens);
+  const background = vars.find(([k]) => k === "--a2ui-color-background")?.[1];
+  const l = background === undefined ? null : lightness(background);
+  const scheme = l !== null && l < 0.18 ? "dark" : "light";
+  return `:root{color-scheme:${scheme};${vars.map(([k, v]) => `${k}:${v};`).join("")}}`;
 }
