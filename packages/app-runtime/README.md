@@ -12,7 +12,7 @@ const { html, sha256, runtime } = compile(spec);
 ```
 
 - `compile(spec)` returns the page, its sha256 and the runtime it was built
-  with (`@cloudcrane/app-runtime@0.2.0+<hash>`); it throws `CompileError`
+  with (`@cloudcrane/app-runtime@0.3.0+<hash>`); it throws `CompileError`
   listing every problem when the spec doesn't validate.
 - `compile(spec, { runtime: "shared" })` links the runtime instead of inlining
   it: the page names `runtimeFile().path` (`/_cc/runtime/<version>-<hash>.js`)
@@ -38,6 +38,12 @@ const { html, sha256, runtime } = compile(spec);
   game.emit("over", { score }); // the screen's action for "over" runs
   game.random(); // seeded by the page
   ```
+
+  The page kit runs an HTML page as it is, full screen. Its `localStorage`
+  works: what it holds is written into the frame when it opens, and each
+  change goes to the page, which keeps it under `<data.key>.coded.<id>` (at
+  most 4 MB), so it survives a reload and an update and the frame sees only
+  its own. Both kits reach the page through `window.__ccBus`.
 
 - `@cloudcrane/app-runtime/host`: what a host publishing spec apps needs in one
   import (validate, compile, derive the blueprint).

@@ -25,7 +25,7 @@ describe("the host bundle", () => {
 
   it("records where it came from and each file's hash", () => {
     const vendor = JSON.parse(readFileSync(join(out, "VENDOR.json"), "utf8"));
-    expect(vendor.runtime).toBe("0.2.0");
+    expect(vendor.runtime).toBe("0.3.0");
     expect(Object.keys(vendor.files).sort()).toEqual(["blackbox.d.mts", "blackbox.mjs"]);
     expect(vendor.commit).toMatch(/^[0-9a-f]{40}$/);
   });

@@ -55,23 +55,35 @@ const CodedType = z.enum(CODED_TYPES);
 
 /**
  * A coded component: what the catalog can't draw, as the spec's own code, run
- * sandboxed in a frame with a kit (`game`: a loop, a canvas, touch and keys).
+ * sandboxed in a frame with a kit (`game`: a loop, a canvas, touch and keys;
+ * `page`: a whole HTML page, full screen). Either saves through `localStorage`,
+ * which the frame's bridge keeps on the page under the spec's data key.
  * It's given only its declared inputs and may only send its declared events;
  * a screen places it with the catalog's Coded component.
  */
 export const CodedComponent = z
   .object({
     kind: z.literal("coded"),
-    kit: z.enum(["game"]),
+    /** game: a canvas, a loop and touch, the code a script; page: a whole HTML page, drawn full screen (what an app written as HTML becomes). */
+    kit: z.enum(["game", "page"]),
     inputs: z.record(CelName, CodedType).default({}),
     events: z.record(CelName, z.record(CelName, CodedType)).default({}),
     code: z
       .string()
       .min(1)
-      .max(64 * 1024)
-      .refine((c) => !/<\/script/i.test(c), "can't contain </script>, which would end the frame's script"),
+      .max(1024 * 1024),
   })
   .strict()
+  .superRefine((c, ctx) => {
+    if (c.kit === "game" && /<\/script/i.test(c.code))
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["code"],
+        message: "can't contain </script>, which would end the frame's script (a page kit's code can)",
+      });
+    if (c.kit === "game" && c.code.length > 64 * 1024)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["code"], message: "a game kit's code is at most 64 KB" });
+  })
   .refine((c) => Object.keys(c.inputs).length <= 10 && Object.keys(c.events).length <= 10, "at most 10 inputs and 10 events");
 
 export const SpecSchema = z

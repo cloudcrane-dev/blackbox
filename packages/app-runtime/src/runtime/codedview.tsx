@@ -2,7 +2,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { z } from "zod";
 import { CommonSchemas } from "@a2ui/web_core/v0_9";
 import { createComponentImplementation } from "@a2ui/react/v0_9";
-import { cleanEvent, cleanState, frameHtml, type CodedDef } from "./coded.js";
+import { cleanEvent, cleanState, frameHtml, storeMessage, type CodedDef } from "./coded.js";
 
 // Coded: places one of the spec's coded components. Its code runs in a frame
 // that's sandboxed (scripts only, so its origin is opaque: no storage, nothing
@@ -35,8 +35,20 @@ type Props = {
   on?: { name: string; action: () => Promise<void> }[];
 };
 
-type Env = { components: Record<string, CodedDef>; set(path: string, value: unknown): void };
-let env: Env = { components: {}, set() {} };
+type Env = { components: Record<string, CodedDef>; set(path: string, value: unknown): void; dataKey: string };
+let env: Env = { components: {}, set() {}, dataKey: "app" };
+
+/** Where a component's localStorage is kept on the page: beside the app's own data, one key per component. */
+const storeKeyOf = (use: string) => `${env.dataKey}.coded.${use}`;
+function readStore(use: string): Record<string, string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(storeKeyOf(use)) ?? "{}") as unknown;
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    return Object.fromEntries(Object.entries(v).filter(([, x]) => typeof x === "string")) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
 /** The spec's coded components and the data model, given once at boot. */
 export function setCodedEnv(e: Env): void {
   env = e;
@@ -81,11 +93,24 @@ export const Coded = createComponentImplementation(CodedApi, ({ props, context }
     const def = env.components[p.use];
     if (!def || !box.current) return;
     const at = `/ui/coded/${id}`;
-    const ch = makeFrame(box.current, frameHtml(def.code));
+    let kept = readStore(p.use);
+    const ch = makeFrame(box.current, frameHtml(def, kept));
     port.current = ch;
     let lastState = "";
     ch.onmessage = (e: MessageEvent) => {
-      const d = (e.data ?? {}) as { state?: unknown; emit?: { name?: unknown; data?: unknown } };
+      const d = (e.data ?? {}) as { state?: unknown; emit?: { name?: unknown; data?: unknown }; store?: unknown };
+      if ("store" in d) {
+        const next = storeMessage(kept, d.store);
+        if (next) {
+          try {
+            localStorage.setItem(storeKeyOf(p.use), JSON.stringify(next));
+            kept = next;
+          } catch {
+            // A full or blocked storage keeps the app running; it just can't save, as on a page of its own.
+          }
+        }
+        return;
+      }
       if ("state" in d) {
         const s = cleanState(d.state);
         const json = s && JSON.stringify(s);
@@ -142,5 +167,10 @@ export const Coded = createComponentImplementation(CodedApi, ({ props, context }
     }
   });
 
-  return <div class="cc-coded" ref={box} role="group" aria-label={p.label} style={{ aspectRatio: String(p.aspect ?? 1) }} />;
+  const page = env.components[p.use]?.kit === "page";
+  return page ? (
+    <div class="cc-coded cc-page" ref={box} role="group" aria-label={p.label} />
+  ) : (
+    <div class="cc-coded" ref={box} role="group" aria-label={p.label} style={{ aspectRatio: String(p.aspect ?? 1) }} />
+  );
 });

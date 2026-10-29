@@ -19,7 +19,9 @@ if (!spec) for (const p of problems) console.log(`${p.at}: ${p.problem}`);
   date functions and a bounded `fold`.
 - `@cloudcrane/app-spec/schema.json`: the spec as JSON Schema (2020-12).
 - Coded components (`components`): code for what the catalog can't draw, with
-  the kit it runs with (`game`), the inputs it's given and the events it sends.
+  the kit it runs with (`game`, or `page` for a whole HTML page), the inputs
+  it's given and the events it sends. A game kit's code is at most 64 KB and
+  can't contain `</script>`; a page kit's is an HTML page of up to 1 MB.
   A screen places one with the catalog's `Coded` component, binding each input
   to the data model and each event to an action. Its code is exempt from the
   leak scan's code rules, but not from the others.

@@ -93,7 +93,7 @@ function boot(): void {
   surface.onError.subscribe((e: unknown) => console.error("[a2ui]", JSON.stringify(e)));
   surface.onWarning.subscribe((w: unknown) => console.warn("[a2ui]", JSON.stringify(w)));
   const persist = spec.data.persist;
-  setCodedEnv({ components: spec.components ?? {}, set: (p, v) => model.set(p, v) });
+  setCodedEnv({ components: spec.components ?? {}, set: (p, v) => model.set(p, v), dataKey: spec.data.key });
 
   const today = (window as { __ccToday?: string }).__ccToday ?? localToday();
   model.set("/today", today);

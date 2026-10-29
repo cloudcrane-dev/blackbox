@@ -67,6 +67,12 @@ describe("coded components", () => {
     expect(problemsOf((s) => (snake(s)["extra"] = 1))).toMatch(/components\.snake/);
   });
 
+  it("takes a page kit's code as a whole HTML page, scripts and all; a game kit's code still can't end its script", () => {
+    const page = `<!doctype html><style>body{margin:0}</style><main id="list"></main><script>localStorage.setItem("n", "1");</script>`;
+    expect(problemsOf((s) => Object.assign(snake(s), { kit: "page", code: page }))).toBe("");
+    expect(problemsOf((s) => (snake(s)["code"] = page))).toMatch(/components\.snake\.code.*<\/script>/);
+  });
+
   it("refuses a component no screen places", () => {
     expect(problemsOf((s) => (board(s)["use"] = "snake2"))).toMatch(/no coded component "snake2"/);
     expect(

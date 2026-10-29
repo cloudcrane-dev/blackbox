@@ -11,4 +11,5 @@ export const DATESTRIP_CSS = `.cc-datestrip{display:flex;gap:8px;overflow-x:auto
 .cc-field input:focus-visible,.cc-field textarea:focus-visible{outline:2px solid var(--a2ui-textfield-color-border-focus,var(--a2ui-color-primary));outline-offset:1px}
 .cc-field.cc-invalid input,.cc-field.cc-invalid textarea{border-color:var(--a2ui-textfield-color-error,var(--a2ui-color-error))}.cc-field-error{font-weight:400;color:var(--a2ui-textfield-color-error,var(--a2ui-color-error))}`;
 
-export const CODED_CSS = `.cc-coded{display:block;width:100%;overflow:hidden;border-radius:var(--a2ui-border-radius,12px);background:var(--a2ui-color-surface);border:1px solid var(--a2ui-color-border)}`;
+export const CODED_CSS = `.cc-coded{display:block;width:100%;overflow:hidden;border-radius:var(--a2ui-border-radius,12px);background:var(--a2ui-color-surface);border:1px solid var(--a2ui-color-border)}
+.cc-coded.cc-page{position:fixed;inset:0;z-index:1;border:0;border-radius:0;background:transparent}`;
