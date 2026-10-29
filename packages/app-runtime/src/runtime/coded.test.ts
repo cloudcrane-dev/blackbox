@@ -1,6 +1,6 @@
 import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
-import { cleanEvent, cleanState, frameHtml } from "./coded.js";
+import { bridgeScript, cleanEvent, cleanState, frameHtml, storeMessage } from "./coded.js";
 import { GAME_KIT } from "./kit.js";
 
 // A coded component runs in a sandboxed frame and talks to the page only by
@@ -9,6 +9,13 @@ import { GAME_KIT } from "./kit.js";
 // same way for the same time and seed, in a test or on a phone.
 
 const over = { kind: "coded" as const, kit: "game" as const, inputs: {}, events: { over: { score: "number" as const, name: "string" as const } }, code: "x" };
+const page = {
+  kind: "coded" as const,
+  kit: "page" as const,
+  inputs: {},
+  events: {},
+  code: '<main id="n"></main><script>document.getElementById("n").textContent=localStorage.getItem("note")</script>',
+};
 
 describe("what the page takes from a coded component", () => {
   it("takes a declared event's declared fields of the right type, and nothing else", () => {
@@ -27,9 +34,16 @@ describe("what the page takes from a coded component", () => {
     expect(cleanState({ big: "x".repeat(20_000) })).toBeNull();
   });
 
+  it("builds a page kit's frame: the bridge first, then the page as written, with what it saved escaped so it can't end a script", () => {
+    const html = frameHtml(page, { note: "</script><script>alert(1)" });
+    expect(html.indexOf(page.code)).toBeGreaterThan(html.indexOf("__ccBus"));
+    expect(html).not.toContain("</script><script>alert(1)");
+    expect(html).not.toContain(GAME_KIT);
+  });
+
   it("builds the frame's page: the kit, then the component's code, each in its own script", () => {
-    const html = frameHtml("game.start({});");
-    expect(html.indexOf(GAME_KIT)).toBeGreaterThan(0);
+    const html = frameHtml({ ...over, code: "game.start({});" }, {});
+    expect(html.indexOf(GAME_KIT)).toBeGreaterThan(html.indexOf("__ccBus"));
     expect(html.indexOf("game.start({});")).toBeGreaterThan(html.indexOf(GAME_KIT));
     expect(html).toContain("<canvas");
   });
@@ -50,6 +64,7 @@ function kitFrame() {
     Math,
   };
   ctx["window"] = ctx;
+  runInNewContext(bridgeScript({}), ctx);
   runInNewContext(GAME_KIT, ctx);
   const game = ctx["game"] as {
     start(o: unknown): void;
@@ -66,6 +81,45 @@ function kitFrame() {
     page: (m: unknown) => port.onmessage!({ data: m }),
   };
 }
+
+describe("the storage bridge", () => {
+  function bridged(stored: Record<string, string>) {
+    const sent: unknown[] = [];
+    const listeners: ((e: unknown) => void)[] = [];
+    const ctx: Record<string, unknown> = { addEventListener: (_t: string, f: (e: unknown) => void) => listeners.push(f), JSON, Object, String };
+    ctx["window"] = ctx;
+    runInNewContext(bridgeScript(stored), ctx);
+    const port = { onmessage: null, postMessage: (m: unknown) => sent.push(m) };
+    return { store: ctx["localStorage"] as Storage, sent, connect: () => listeners.forEach((f) => f({ data: "cc-port", ports: [port] })) };
+  }
+
+  it("gives the frame a localStorage holding what it saved, and sends each change to the page once the port arrives", () => {
+    const b = bridged({ note: "Buy milk", "</script>": "x" });
+    expect(b.store.getItem("note")).toBe("Buy milk");
+    expect(b.store.getItem("nothing")).toBeNull();
+    expect(b.store.length).toBe(2);
+    b.store.setItem("note", "Buy bread");
+    b.store.setItem("count", 3 as unknown as string);
+    b.store.removeItem("</script>");
+    expect(b.sent).toEqual([]);
+    b.connect();
+    expect(b.sent).toEqual([{ store: { set: ["note", "Buy bread"] } }, { store: { set: ["count", "3"] } }, { store: { remove: "</script>" } }]);
+    expect(b.store.getItem("count")).toBe("3");
+    b.store.clear();
+    expect(b.store.length).toBe(0);
+    expect(b.sent.at(-1)).toEqual({ store: { clear: true } });
+  });
+
+  it("keeps on the page only well-formed changes, within the space a phone gives", () => {
+    const kept = { a: "1" };
+    expect(storeMessage(kept, { set: ["b", "2"] })).toEqual({ a: "1", b: "2" });
+    expect(storeMessage(kept, { remove: "a" })).toEqual({});
+    expect(storeMessage(kept, { clear: true })).toEqual({});
+    expect(storeMessage(kept, { set: ["b", 2] })).toBeNull();
+    expect(storeMessage(kept, { set: ["big", "x".repeat(5 * 1024 * 1024)] })).toBeNull();
+    expect(storeMessage(kept, "nonsense")).toBeNull();
+  });
+});
 
 describe("the game kit", () => {
   it("holds what the game sends until the page's port arrives, then sends it in order", () => {

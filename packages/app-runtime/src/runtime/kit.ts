@@ -5,7 +5,8 @@
 // the same way for the same time and seed, in a test with a stopped clock or on
 // a phone. Touch and keys arrive as tap and swipe; the page's own buttons can
 // send inputs too. Nothing reaches the page but messages over its port: the
-// state when it changes, and events.
+// state when it changes, and events. The port is the bridge's (coded.ts,
+// __ccBus), which runs first.
 //
 //   game.start({ rate, setup(), step(), draw(g, width, height) })
 //   game.on("tap" | "swipe" | "input", fn)   swipe: "up" | "down" | "left" | "right"
@@ -14,9 +15,9 @@
 // Plain ES5-style JavaScript in a string: it runs as is in the frame.
 
 export const GAME_KIT = `(function(){"use strict";
-var port=null,out=[],on={},opts=null,ready=false,begun=false,rate=10,acc=0,seed=1,last;
+var bus=window.__ccBus,on={},opts=null,ready=false,begun=false,rate=10,acc=0,seed=1,last;
 var cv=document.querySelector("canvas"),g=cv.getContext("2d"),W=0,H=0;
-function send(m){if(port)port.postMessage(m);else out.push(m)}
+function send(m){bus.send(m)}
 function fire(n,a,b){(on[n]||[]).forEach(function(f){f(a,b)})}
 function fit(){var r=Math.min(window.devicePixelRatio||1,3);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*r);cv.height=Math.round(H*r);g.setTransform(r,0,0,r,0,0)}
 function report(){if(!game.state||typeof game.state!=="object")return;var s;try{s=JSON.stringify(game.state)}catch(e){return}if(s!==undefined&&s!==last){last=s;send({state:JSON.parse(s)})}}
@@ -31,13 +32,11 @@ on:function(n,f){(on[n]=on[n]||[]).push(f)},
 emit:function(n,d){send({emit:{name:String(n),data:d}})},
 random:function(){seed=(seed+0x6D2B79F5)|0;var t=Math.imul(seed^(seed>>>15),1|seed);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}};
 window.game=game;
-addEventListener("message",function(e){if(e.data!=="cc-port"||port||!e.ports||!e.ports[0])return;port=e.ports[0];
-port.onmessage=function(m){var d=m.data||{};
+bus.on(function(m){var d=m||{};
 if(d.init){seed=(Number(d.init.seed)|0)||1;game.inputs=d.init.inputs||{};ready=true;begin()}
 if(d.input){game.inputs[d.input.name]=d.input.value;fire("input",d.input.name,d.input.value)}
 if(typeof d.tick==="number")frame(d.tick);
-if(typeof d.visible==="boolean")game.paused=!d.visible};
-var q=out;out=[];q.forEach(send)});
+if(typeof d.visible==="boolean")game.paused=!d.visible});
 addEventListener("resize",function(){if(begun){fit();paint()}});
 var x0,y0,t0;
 cv.addEventListener("pointerdown",function(e){x0=e.offsetX;y0=e.offsetY;t0=e.timeStamp});

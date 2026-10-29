@@ -16,6 +16,9 @@ your repo ──blackbox extract──▶ spec.json + provenance.json ──blac
   catalog can't draw (a game on a canvas) can be the spec's own code, run in a
   sandboxed frame with a kit, given only the inputs it declares and sending
   only the events it declares. See [`fixtures/snake`](fixtures/snake/spec.json).
+  A whole HTML app can be one too, with the page kit: it runs full screen and
+  its `localStorage` works, kept by the page. See
+  [`fixtures/notes`](fixtures/notes/spec.json).
 - **`provenance.json`** stays with you. It points every part of the spec at the
   lines of your code it came from, so `blackbox diff` can tell which parts a
   change touched.

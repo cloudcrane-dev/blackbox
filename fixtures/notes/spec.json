@@ -1,0 +1,157 @@
+{
+  "v": 1,
+  "manifest": {
+    "runtime": "0.3.0",
+    "generator": "blackbox@0.3.0 (hand-written example)",
+    "source": {
+      "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "module": {
+    "id": "notes",
+    "name": "Notes",
+    "purpose": "Write short notes and keep them on this phone."
+  },
+  "tokens": {
+    "color": {
+      "$type": "color",
+      "background": {
+        "$value": "#f6f5f2"
+      },
+      "on-background": {
+        "$value": "#1d1c1a"
+      },
+      "surface": {
+        "$value": "#ffffff"
+      },
+      "on-surface": {
+        "$value": "#1d1c1a"
+      },
+      "border": {
+        "$value": "#dedbd5"
+      },
+      "primary": {
+        "$value": "#0f766e"
+      },
+      "on-primary": {
+        "$value": "#ffffff"
+      },
+      "input": {
+        "$value": "#efede9"
+      },
+      "on-input": {
+        "$value": "#1d1c1a"
+      },
+      "success": {
+        "$value": "#15803d"
+      },
+      "warning": {
+        "$value": "#b45309"
+      },
+      "error": {
+        "$value": "#b91c1c"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "caption-color": {
+        "$value": "#625e57"
+      },
+      "color": {
+        "$value": "#1d1c1a"
+      }
+    },
+    "border-radius": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "font-family": {
+      "$type": "fontFamily",
+      "$value": ["system-ui", "sans-serif"]
+    }
+  },
+  "surface": {
+    "catalog": "https://cloudcrane.ai/catalogs/app/v1.json",
+    "messages": [
+      {
+        "version": "v0.9.1",
+        "createSurface": {
+          "surfaceId": "notes",
+          "catalogId": "https://cloudcrane.ai/catalogs/app/v1.json"
+        }
+      },
+      {
+        "version": "v0.9.1",
+        "updateComponents": {
+          "surfaceId": "notes",
+          "components": [
+            {
+              "id": "root",
+              "component": "Coded",
+              "use": "notes",
+              "label": "Notes"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "data": {
+    "version": 1,
+    "key": "notes.app",
+    "persist": "/saved",
+    "views": [],
+    "schema": {
+      "type": "object"
+    },
+    "initial": {},
+    "migrations": []
+  },
+  "logic": {
+    "consts": {},
+    "functions": {},
+    "computed": {},
+    "vectors": []
+  },
+  "network": [],
+  "journeys": [
+    {
+      "id": "J-1",
+      "title": "Keep a note",
+      "steps": [
+        {
+          "id": "J-1.1",
+          "text": "Write a note and save it"
+        },
+        {
+          "id": "J-1.2",
+          "text": "See every saved note"
+        }
+      ]
+    }
+  ],
+  "promises": [
+    {
+      "id": "P-1",
+      "text": "Saved notes survive a reload and every update",
+      "kind": "data"
+    }
+  ],
+  "tests": [],
+  "components": {
+    "notes": {
+      "kind": "coded",
+      "kit": "page",
+      "inputs": {},
+      "events": {},
+      "code": "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<style>body{font:17px system-ui;margin:16px;background:#f6f5f2;color:#1d1c1a}h1{font-size:24px}label{display:block;font-weight:600;margin:12px 0 6px}\ntextarea{width:100%;min-height:96px;font:inherit;padding:10px;border:1px solid #dedbd5;border-radius:10px}button{margin-top:10px;padding:12px 16px;font:inherit;border:0;border-radius:10px;background:#0f766e;color:#fff}\nul{padding-left:20px}</style></head><body>\n<h1>Notes</h1>\n<label for=\"note\">New note</label><textarea id=\"note\"></textarea>\n<button id=\"add\">Save note</button>\n<ul id=\"list\"></ul>\n<script>\nvar KEY=\"notes\";\nfunction load(){try{return JSON.parse(localStorage.getItem(KEY)||\"[]\")}catch(e){return[]}}\nfunction draw(){var ul=document.getElementById(\"list\");ul.textContent=\"\";load().forEach(function(n){var li=document.createElement(\"li\");li.textContent=n;ul.appendChild(li)})}\ndocument.getElementById(\"add\").onclick=function(){var t=document.getElementById(\"note\");var v=t.value.trim();if(!v)return;var all=load();all.push(v);localStorage.setItem(KEY,JSON.stringify(all));t.value=\"\";draw()};\ndraw();\n</script></body></html>"
+    }
+  },
+  "mods": {
+    "open": ["/tokens/*"],
+    "locked": []
+  }
+}
