@@ -59,10 +59,12 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
     await expect.poll(async () => (await game(page)).alive, { timeout: 10_000 }).toBe(false);
     const ended = await game(page);
     expect(ended.score).toBeGreaterThanOrEqual(1);
-    await expect.poll(async () => (await data(page)).saved.best).toBe(ended.score);
-    await expect.poll(() => page.evaluate(() => localStorage.getItem("snake.best"))).toContain(`"best":${ended.score}`);
+    // A shared CI machine runs the browser tests side by side: give what follows the game's end the same 5 s as the rest.
+    const soon = { timeout: 5_000 };
+    await expect.poll(async () => (await data(page)).saved.best, soon).toBe(ended.score);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("snake.best")), soon).toContain(`"best":${ended.score}`);
     // What the game reports shows on the screen.
-    await expect.poll(() => page.locator("#app").innerText()).toMatch(new RegExp(`Score\\s+${ended.score}\\s+Best\\s+${ended.score}`));
+    await expect.poll(() => page.locator("#app").innerText(), soon).toMatch(new RegExp(`Score\\s+${ended.score}\\s+Best\\s+${ended.score}`));
 
     await page.reload();
     await page.waitForFunction(() => typeof (window as { appState?: unknown }).appState === "function");
