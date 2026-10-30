@@ -97,4 +97,26 @@ describe("coded components", () => {
     s.module.purpose = "var x = function () { return 1; };";
     expect(leakProblems(s).map((p) => p.at)).toContain("/module/purpose");
   });
+
+  it("takes the device features the app uses, each once with why, and the camera and microphone only for a page kit", () => {
+    const uses = (s: ReturnType<typeof codedSpec>, u: unknown) => ((s as unknown as { uses: unknown }).uses = u);
+    expect(problemsOf((s) => uses(s, [{ what: "location", why: "To show the weather where you are" }]))).toBe("");
+    expect(problemsOf((s) => uses(s, [{ what: "teleport", why: "x" }]))).toMatch(/uses\[0\]\.what/);
+    expect(
+      problemsOf((s) =>
+        uses(s, [
+          { what: "motion", why: "a" },
+          { what: "motion", why: "b" },
+        ]),
+      ),
+    ).toMatch(/uses: motion is listed twice/);
+    // A game kit's frame has no origin of its own, and the browser gives such a frame no camera or microphone.
+    expect(problemsOf((s) => uses(s, [{ what: "camera", why: "To scan" }]))).toMatch(/uses: the camera and microphone work only in a page-kit component/);
+    expect(
+      problemsOf((s) => {
+        uses(s, [{ what: "microphone", why: "To record" }]);
+        snake(s)["kit"] = "page";
+      }),
+    ).toBe("");
+  });
 });

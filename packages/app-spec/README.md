@@ -22,6 +22,10 @@ if (!spec) for (const p of problems) console.log(`${p.at}: ${p.problem}`);
   the kit it runs with (`game`, or `page` for a whole HTML page), the inputs
   it's given and the events it sends. A game kit's code is at most 64 KB and
   can't contain `</script>`; a page kit's is an HTML page of up to 1 MB.
+- Device features (`uses`): what the app uses, by CloudCrane's names
+  (`camera`, `microphone`, `location`, `motion`, `screen-awake`, `gamepad`,
+  `voice`, `contacts`, `nfc`), each once with why. Anything not listed is
+  blocked. The camera and microphone need a page-kit component.
   A screen places one with the catalog's `Coded` component, binding each input
   to the data model and each event to an action. Its code is exempt from the
   leak scan's code rules, but not from the others.

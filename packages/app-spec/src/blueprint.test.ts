@@ -20,7 +20,7 @@ describe("a spec's blueprint", () => {
     const b = deriveBlueprint(habits());
     expect(b.screens).toEqual([{ id: "habits", says: "Shows Your Habits; asks for Habit; with + Add habit; using DateStrip, CheckBox, TextField." }]);
     expect(b.design.palette).toContain("#0f766e");
-    expect(b.design.notes).toBe("Built from a CloudCrane spec, runtime 0.3.0.");
+    expect(b.design.notes).toBe("Built from a CloudCrane spec, runtime 0.4.0.");
   });
 
   it("takes the listing (icon, category, tags) when the spec has one", () => {
@@ -30,5 +30,12 @@ describe("a spec's blueprint", () => {
     s.module.tags = ["habits", "streak"];
     expect(deriveBlueprint(s)).toMatchObject({ icon: "check", category: "productivity", tags: ["habits", "streak"] });
     expect(deriveBlueprint(habits())).not.toHaveProperty("icon");
+  });
+
+  it("carries the device features the spec uses, and none when it uses none", () => {
+    const s = habits();
+    s.uses = [{ what: "location", why: "To show the weather where you are" }];
+    expect(deriveBlueprint(s).uses).toEqual([{ what: "location", why: "To show the weather where you are" }]);
+    expect(deriveBlueprint(habits())).not.toHaveProperty("uses");
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NEEDS_ORIGIN, USE_NAMES } from "./uses.js";
 
 // The CloudCrane app spec: an A2UI surface (the screens) in a small envelope for
 // what A2UI doesn't cover. Nothing in it is code from the app it came from:
@@ -162,6 +163,11 @@ export const SpecSchema = z
       .array(z.object({ site: z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/), why: Text(300) }).strict())
       .max(5)
       .default([]),
+    /** The device features the app uses, by CloudCrane's names, each once with why; anything not listed is blocked. */
+    uses: z
+      .array(z.object({ what: z.enum(USE_NAMES), why: Text(300) }).strict())
+      .max(USE_NAMES.length)
+      .default([]),
     journeys: z
       .array(
         z
@@ -187,6 +193,16 @@ export const SpecSchema = z
       .strict()
       .default({ open: [], locked: [] }),
   })
-  .strict();
+  .strict()
+  .superRefine((s, ctx) => {
+    const seen = new Set<string>();
+    for (const u of s.uses) {
+      if (seen.has(u.what)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["uses"], message: `${u.what} is listed twice` });
+      seen.add(u.what);
+    }
+    const needsOrigin = s.uses.some((u) => NEEDS_ORIGIN.includes(u.what));
+    if (needsOrigin && !Object.values(s.components).some((c) => c.kit === "page"))
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["uses"], message: "the camera and microphone work only in a page-kit component" });
+  });
 
 export type Spec = z.infer<typeof SpecSchema>;

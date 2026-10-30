@@ -59,10 +59,11 @@ export function compile(input: unknown, options: CompileOptions = {}): Compiled 
   if (spec.manifest.runtime !== RUNTIME_VERSION)
     throw new CompileError([{ at: "manifest.runtime", problem: `this compiler builds runtime ${RUNTIME_VERSION}` }]);
   // Only what drawing the app needs goes in the page: not the journeys, promises or tests.
-  // Coded components go in only when there are some.
-  const inPage: Pick<Spec, "data" | "logic" | "surface"> & Partial<Pick<Spec, "components">> & { module: Spec["module"] } = {
+  // Coded components go in only when there are some, and the device features they may use only when it uses some.
+  const inPage: Pick<Spec, "data" | "logic" | "surface"> & Partial<Pick<Spec, "components" | "uses">> & { module: Spec["module"] } = {
     module: spec.module,
     ...(Object.keys(spec.components).length ? { components: spec.components } : {}),
+    ...(spec.uses.length ? { uses: spec.uses } : {}),
     data: spec.data,
     logic: spec.logic,
     surface: spec.surface,

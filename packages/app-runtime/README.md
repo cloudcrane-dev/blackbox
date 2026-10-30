@@ -12,7 +12,7 @@ const { html, sha256, runtime } = compile(spec);
 ```
 
 - `compile(spec)` returns the page, its sha256 and the runtime it was built
-  with (`@cloudcrane/app-runtime@0.3.0+<hash>`); it throws `CompileError`
+  with (`@cloudcrane/app-runtime@0.4.0+<hash>`); it throws `CompileError`
   listing every problem when the spec doesn't validate.
 - `compile(spec, { runtime: "shared" })` links the runtime instead of inlining
   it: the page names `runtimeFile().path` (`/_cc/runtime/<version>-<hash>.js`)
@@ -44,6 +44,14 @@ const { html, sha256, runtime } = compile(spec);
   change goes to the page, which keeps it under `<data.key>.coded.<id>` (at
   most 4 MB), so it survives a reload and an update and the frame sees only
   its own. Both kits reach the page through `window.__ccBus`.
+
+  A component's frame is allowed the device features the spec's `uses`
+  declares (its `allow`), and the page must allow them for frames too (in
+  Permissions-Policy, `geolocation=*` rather than `(self)`). Browsers give a
+  frame with no origin of its own no camera or microphone, so a page kit whose
+  spec declares either runs with the page's origin; it's then no more apart
+  from the page than an app written straight into it. A game kit always
+  stays apart.
 
 - `@cloudcrane/app-runtime/host`: what a host publishing spec apps needs in one
   import (validate, compile, derive the blueprint).
