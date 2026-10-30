@@ -3,6 +3,7 @@ import { catalogFor } from "./catalog.js";
 import { leakProblems } from "./leak.js";
 import { logicProblems } from "./logic.js";
 import { SpecSchema, type Spec } from "./schema.js";
+import { pageProblems } from "./page.js";
 
 // Everything wrong with a spec, collected rather than stopping at the first: the
 // envelope's shape, then the A2UI surface, then references between parts.
@@ -43,7 +44,7 @@ export function validateSpec(input: unknown, catalog?: Catalog): { spec: Spec | 
   for (const m of spec.data.migrations)
     if (m.to !== m.from + 1 || m.to > spec.data.version)
       problems.push({ at: `data.migrations ${m.from}`, problem: "steps go one version at a time, up to data.version" });
-  problems.push(...codedProblems(spec), ...logicProblems(spec), ...leakProblems(spec));
+  problems.push(...codedProblems(spec), ...pageProblems(spec), ...logicProblems(spec), ...leakProblems(spec));
   for (const locked of spec.mods.locked) if (spec.mods.open.includes(locked)) problems.push({ at: `mods ${locked}`, problem: "both open and locked" });
   return { spec: problems.length ? null : spec, problems };
 }
