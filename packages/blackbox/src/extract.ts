@@ -16,7 +16,7 @@ import { shingleLeaks } from "./shingles.js";
 // and how it was found. The spec itself holds no code and no paths: the
 // validator and the leak gates refuse any.
 
-export const GENERATOR = "blackbox@0.4.0";
+export const GENERATOR = "blackbox@0.5.0";
 
 /** blackbox.hints.json: where things are, and what the readers can't find yet (as spec parts). */
 export type Hints = {

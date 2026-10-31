@@ -187,6 +187,8 @@ export const SpecSchema = z
       .record(Id, CodedComponent)
       .refine((c) => Object.keys(c).length <= 5, "at most 5 components")
       .default({}),
+    /** The page-kit component that is the whole app: the spec is then that page, compiled to its HTML as written (see page.ts). */
+    page: Id.optional(),
     /** What a remix may change and what stays as the partner made it. */
     mods: z
       .object({ open: z.array(PointerPattern), locked: z.array(PointerPattern) })
