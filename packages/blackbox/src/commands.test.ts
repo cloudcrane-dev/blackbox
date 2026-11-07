@@ -22,6 +22,13 @@ describe("blackbox", () => {
     const out = validate(join(dir, "bad.json"));
     expect(out.ok).toBe(false);
     expect(out.lines.join("\n")).toMatch(/Unrecognized key/);
+    // Ready, and still told what would make it better: the habits spec without its dark colours.
+    const light = JSON.parse(readFileSync(SPEC, "utf8"));
+    delete light.tokens.dark;
+    writeFileSync(join(dir, "light.json"), JSON.stringify(light));
+    const better = validate(join(dir, "light.json"));
+    expect(better.ok).toBe(true);
+    expect(better.lines.join("\n")).toMatch(/1 thing to make it better:\n {4}tokens: no dark colours/);
   });
 
   it("build: writes the golden page", () => {
@@ -51,6 +58,11 @@ describe("blackbox", () => {
       expect(csp).toContain("default-src 'none'");
       expect(csp).toContain("connect-src 'self'");
       expect(csp).not.toContain("unsafe-eval");
+      // The phone features it declares (none here), and nothing else, as CloudCrane serves it.
+      const permissions = res.headers.get("permissions-policy")!;
+      expect(permissions).toContain("camera=()");
+      expect(permissions).toContain("geolocation=()");
+      expect(permissions).toContain("payment=()");
       expect(await res.text()).toContain('id="cc-spec"');
       expect((await fetch(`${url}secrets.json`)).status).toBe(404);
     } finally {

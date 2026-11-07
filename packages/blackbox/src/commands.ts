@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
-import { validateSpec } from "@cloudcrane/app-spec";
+import { featuresOf, validateSpec } from "@cloudcrane/app-spec";
 import { compile, CompileError } from "@cloudcrane/app-runtime";
-import { appCsp } from "./csp.js";
+import { appCsp, appPermissions } from "./csp.js";
 import { extract as extractSpec, type Hints, type Provenance } from "./extract.js";
 import { touchedBy } from "./diff.js";
 import { mkdirSync } from "node:fs";
@@ -21,15 +21,24 @@ const readSpec = (file: string): unknown => {
   }
 };
 
-/** blackbox validate <spec.json>: every problem, or that it's ready. */
+/** blackbox validate <spec.json>: every problem, or that it's ready; and what would make it better, either way. */
 export function validate(file: string): Outcome {
-  const { spec, problems } = validateSpec(readSpec(file));
+  const { spec, problems, warnings } = validateSpec(readSpec(file));
+  const better = warnings.length
+    ? [`  ${warnings.length} thing${warnings.length === 1 ? "" : "s"} to make it better:`, ...warnings.map((w) => `    ${w.at}: ${w.problem}`)]
+    : [];
   if (spec)
     return {
       ok: true,
-      lines: [`${file}: ready. ${spec.journeys.length} journeys, ${spec.promises.length} promises, ${Object.keys(spec.logic.functions).length} rules.`],
+      lines: [
+        `${file}: ready. ${spec.journeys.length} journeys, ${spec.promises.length} promises, ${Object.keys(spec.logic.functions).length} rules.`,
+        ...better,
+      ],
     };
-  return { ok: false, lines: [`${file}: ${problems.length} problem${problems.length === 1 ? "" : "s"}`, ...problems.map((p) => `  ${p.at}: ${p.problem}`)] };
+  return {
+    ok: false,
+    lines: [`${file}: ${problems.length} problem${problems.length === 1 ? "" : "s"}`, ...problems.map((p) => `  ${p.at}: ${p.problem}`), ...better],
+  };
 }
 
 /** blackbox build <spec.json> [--out app.html]: the app page and its hash. */
@@ -46,9 +55,11 @@ export function build(file: string, out?: string): Outcome {
 
 /** blackbox preview <spec.json> [--port 5420]: the app as a phone gets it, on this machine, under CloudCrane's policy. */
 export function preview(file: string, port = 5420): Promise<{ server: Server; url: string }> {
-  const spec = readSpec(file) as { network?: { site: string }[] };
+  const spec = readSpec(file) as { network?: { site: string }[]; uses?: { what: string }[] };
   const { html } = compile(spec);
   const csp = appCsp((spec.network ?? []).map((n) => n.site));
+  // And the phone features it declares, nothing else, as CloudCrane serves it.
+  const permissions = appPermissions(featuresOf(spec.uses ?? []));
   const server = createServer((req, res) => {
     if (req.url !== "/" && req.url !== "/index.html") {
       res.writeHead(404).end();
@@ -57,6 +68,7 @@ export function preview(file: string, port = 5420): Promise<{ server: Server; ur
     res.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       "content-security-policy": csp,
+      "permissions-policy": permissions,
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
     });

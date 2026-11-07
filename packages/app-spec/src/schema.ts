@@ -147,6 +147,11 @@ export const SpecSchema = z
           .default([]),
         /** Each step turns version `from` into `to`, as a CEL expression over `saved`. */
         migrations: z.array(z.object({ from: z.number().int().min(1), to: z.number().int().min(2), cel: Cel }).strict()),
+        /**
+         * What it keeps: the saved fields that are personal (health, money, people's names), as pointers into the saved
+         * data, like /days or /people. They stay on the phone; CloudCrane never puts them in a remix, screenshot or report.
+         */
+        personal: z.array(Pointer).max(20).optional(),
       })
       .strict(),
     logic: z
@@ -159,8 +164,12 @@ export const SpecSchema = z
         vectors: z.array(z.object({ fn: CelName, in: z.array(z.unknown()).max(8), out: z.unknown(), from: z.enum(["recorded", "hint"]) }).strict()).default([]),
       })
       .strict(),
+    /**
+     * What it can reach: each site, why, and what it's sent, in the person's words ("the city you typed"). Shown to the
+     * person before the app opens; a site the code names but this doesn't list is refused.
+     */
     network: z
-      .array(z.object({ site: z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/), why: Text(300) }).strict())
+      .array(z.object({ site: z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/), why: Text(300), sends: Text(200) }).strict())
       .max(5)
       .default([]),
     /** The device features the app uses, by CloudCrane's names, each once with why; anything not listed is blocked. */
@@ -168,6 +177,31 @@ export const SpecSchema = z
       .array(z.object({ what: z.enum(USE_NAMES), why: Text(300) }).strict())
       .max(USE_NAMES.length)
       .default([]),
+    /**
+     * What it does: each screen in words, and what it shows when there's nothing yet, while it loads, offline, and when
+     * something fails. Optional; without it the blueprint describes the one surface from its words.
+     */
+    screens: z
+      .array(
+        z
+          .object({
+            id: Id,
+            says: Text(300),
+            states: z
+              .object({ empty: Text(200).optional(), loading: Text(200).optional(), offline: Text(200).optional(), error: Text(200).optional() })
+              .strict()
+              .optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(20)
+      .optional(),
+    /** How it looks on the phone: the orientation it holds and whether it fills the screen (Android honours both). */
+    screen: z
+      .object({ orientation: z.enum(["portrait", "landscape", "any"]).optional(), fullscreen: z.boolean().optional() })
+      .strict()
+      .optional(),
     journeys: z
       .array(
         z

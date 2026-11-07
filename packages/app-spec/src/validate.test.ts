@@ -80,8 +80,8 @@ describe("the envelope", () => {
   });
 
   it("lists no more than five sites, each a bare host", () => {
-    expect(problemsOf((s) => (s.network = [{ site: "https://example.com/api", why: "x" }]))).toMatch(/network\[0\]\.site/);
-    expect(problemsOf((s) => (s.network = Array.from({ length: 6 }, (_, i) => ({ site: `s${i}.example.com`, why: "x" }))))).toMatch(/network/);
+    expect(problemsOf((s) => (s.network = [{ site: "https://example.com/api", why: "x", sends: "x" }]))).toMatch(/network\[0\]\.site/);
+    expect(problemsOf((s) => (s.network = Array.from({ length: 6 }, (_, i) => ({ site: `s${i}.example.com`, why: "x", sends: "x" }))))).toMatch(/network/);
   });
 });
 

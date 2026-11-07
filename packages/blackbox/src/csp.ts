@@ -5,6 +5,17 @@
 
 const SITE = /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
+/** Features no app may have, whatever it declares (CloudCrane's ALWAYS_OFF). */
+const ALWAYS_OFF = ["payment", "usb", "serial", "hid", "midi", "display-capture"];
+/** Every feature an app could ask for: each is allowed only when the spec's uses declare it (CloudCrane's permissionsPolicy). */
+const FEATURES = ["camera", "microphone", "geolocation", "accelerometer", "gyroscope", "magnetometer", "screen-wake-lock", "gamepad", "bluetooth"];
+
+/** The Permissions-Policy CloudCrane serves an app with: what its uses declare, and nothing else. */
+export function appPermissions(allowed: readonly string[]): string {
+  const on = new Set(allowed);
+  return [...FEATURES.map((f) => `${f}=${on.has(f) ? "*" : "()"}`), ...ALWAYS_OFF.map((f) => `${f}=()`)].join(", ");
+}
+
 export function appCsp(sites: readonly string[]): string {
   const listed = [...new Set(sites.map((s) => s.toLowerCase()))].filter((s) => SITE.test(s));
   const https = listed.map((s) => ` https://${s}`).join("");

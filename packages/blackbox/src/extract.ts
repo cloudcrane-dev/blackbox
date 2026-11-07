@@ -16,19 +16,27 @@ import { shingleLeaks } from "./shingles.js";
 // and how it was found. The spec itself holds no code and no paths: the
 // validator and the leak gates refuse any.
 
-export const GENERATOR = "blackbox@0.5.0";
+export const GENERATOR = "blackbox@0.6.0";
 
 /** blackbox.hints.json: where things are, and what the readers can't find yet (as spec parts). */
 export type Hints = {
   module: Spec["module"];
-  /** roles: a theme colour's name → the token path(s) it sets, like ["color", "primary"] or [["color", "on-background"], ["color", "on-surface"]]. */
+  /**
+   * roles: a theme colour's name → the token path(s) it sets, like ["color", "primary"] or [["color", "on-background"], ["color", "on-surface"]].
+   * mode: one scheme only. Left out, a theme with both gives the light colours, and the dark ones as tokens.dark.
+   */
   theme?: { file: string; mode?: "dark" | "light"; roles?: Record<string, string[] | string[][]> };
   rules?: { files: string[]; tests?: string[] };
   tokens?: Record<string, unknown>;
   surface: Spec["surface"];
   data: Spec["data"];
   logic?: Partial<Spec["logic"]>;
+  /** What it can reach: each site with why and what it's sent; the device features it uses. */
   network?: Spec["network"];
+  uses?: Spec["uses"];
+  /** What it does: each screen with its empty, loading, offline and error states; the orientation. */
+  screens?: Spec["screens"];
+  screen?: Spec["screen"];
   journeys: Spec["journeys"];
   promises?: Spec["promises"];
   tests?: Spec["tests"];
@@ -58,7 +66,7 @@ export function extract(repo: string, hints: Hints): Extracted {
   // Tokens: the theme's colours by role, its font and radius; the hints may add or override.
   const tokens: Record<string, Record<string, unknown>> = {};
   if (hints.theme) {
-    const { file, mode = "dark", roles = {} } = hints.theme;
+    const { file, mode, roles = {} } = hints.theme;
     cited.add(file);
     const theme = readFlutterTheme(read(file));
     const map = { ...ROLES, ...roles };
@@ -69,6 +77,12 @@ export function extract(repo: string, hints: Hints): Extracted {
       for (const [group, name] of paths) {
         (tokens[group] ??= { $type: "color" })[name] = { $value: mode === "dark" ? c.dark : c.light };
         add(`/tokens/${escapePointer(group)}/${escapePointer(name)}`, cite(file, [c.line, c.line], "flutter-theme", c.name));
+        // Both schemes, unless one was asked for: the dark colour as tokens.dark, where it differs.
+        if (!mode && c.dark !== c.light) {
+          const dark = (tokens["dark"] ??= {}) as Record<string, Record<string, unknown>>;
+          (dark[group] ??= { $type: "color" })[name] = { $value: c.dark };
+          add(`/tokens/dark/${escapePointer(group)}/${escapePointer(name)}`, cite(file, [c.line, c.line], "flutter-theme", c.name));
+        }
       }
     }
     if (theme.font) {
@@ -144,15 +158,18 @@ export function extract(repo: string, hints: Hints): Extracted {
     data: hints.data,
     logic: { consts: { ...consts, ...(hints.logic?.consts ?? {}) }, functions, computed: hints.logic?.computed ?? {}, vectors },
     network: hints.network ?? [],
+    ...(hints.uses ? { uses: hints.uses } : {}),
+    ...(hints.screens ? { screens: hints.screens } : {}),
+    ...(hints.screen ? { screen: hints.screen } : {}),
     journeys: hints.journeys,
     promises: hints.promises ?? [],
     tests: hints.tests ?? [],
     mods: hints.mods ?? { open: [], locked: [] },
   };
-  for (const part of ["surface", "data", "journeys", "promises", "tests", "mods", "network", "module"])
+  for (const part of ["surface", "data", "journeys", "promises", "tests", "mods", "network", "uses", "screens", "screen", "module"])
     if (part in hints) add(`/${part}`, { file: "blackbox.hints.json", lines: [0, 0], hash: "", how: "hint" });
 
-  const { spec, problems } = validateSpec(draft);
+  const { spec, problems, warnings } = validateSpec(draft);
   // The second gate: nothing in the spec (outside its CEL rules) repeats the source's own words.
   const shingles = shingleLeaks(draft, files.map(read));
   const all = [...problems, ...shingles];
@@ -178,6 +195,7 @@ export function extract(repo: string, hints: Hints): Extracted {
     ...(notes.length ? notes : ["- nothing"]),
     "",
     ...(all.length ? ["## Problems", "", ...all.map((p) => `- ${p.at}: ${p.problem}`), ""] : []),
+    ...(warnings.length ? ["## To make it better", "", ...warnings.map((w) => `- ${w.at}: ${w.problem}`), ""] : []),
   ].join("\n");
 
   const provenance: Provenance = { generator: GENERATOR, spec: spec ? sha(canonical(spec)) : "", source: `sha256:${fingerprint}`, elements };
