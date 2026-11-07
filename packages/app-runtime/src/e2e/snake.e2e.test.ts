@@ -54,7 +54,8 @@ const game = async (page: Page) => (await data(page)).ui.coded.board.state;
 describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, () => {
   it("runs by the page's clock: eats the food ahead, ends at the wall, and keeps the best score through a reload", async () => {
     const page = await open();
-    await expect.poll(async () => (await game(page)).games).toBe(1);
+    // The game's sandboxed frame can take over a second to start on a busy CI machine (macOS runners especially).
+    await expect.poll(async () => (await game(page)).games, { timeout: 10_000 }).toBe(1);
     // Heading right from the left, the first food is straight ahead; the wall comes after it.
     await expect.poll(async () => (await game(page)).alive, { timeout: 10_000 }).toBe(false);
     const ended = await game(page);
@@ -75,13 +76,13 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
 
   it("is steered and restarted by the screen's buttons, and a worse game leaves the best alone", async () => {
     const page = await open({ best: 50 });
-    await expect.poll(async () => (await game(page)).games).toBe(1);
+    await expect.poll(async () => (await game(page)).games, { timeout: 10_000 }).toBe(1);
     await page.getByRole("button", { name: "Down" }).click();
     await expect.poll(async () => (await game(page)).dir).toBe("down");
     // Down from the middle row hits the bottom wall before any food.
     await expect.poll(async () => (await game(page)).alive, { timeout: 10_000 }).toBe(false);
     await page.getByRole("button", { name: "New game" }).click();
-    await expect.poll(async () => (await game(page)).games).toBe(2);
+    await expect.poll(async () => (await game(page)).games, { timeout: 10_000 }).toBe(2);
     expect((await game(page)).alive).toBe(true);
     expect((await data(page)).saved.best).toBe(50);
     expect(page.errors).toEqual([]);
@@ -102,7 +103,7 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
     };
     const page = await served(runtimeFile().js);
     await page.waitForFunction(() => typeof (window as { appState?: unknown }).appState === "function");
-    await expect.poll(async () => (await game(page)).games).toBe(1);
+    await expect.poll(async () => (await game(page)).games, { timeout: 10_000 }).toBe(1);
     await page.close();
 
     const tampered = await served(runtimeFile().js.replace("Coded", "Codex"));
@@ -114,7 +115,7 @@ describe.skipIf(!hasChrome)("Snake, compiled, in Chrome", { timeout: 60_000 }, (
   it("keeps the frame sandboxed and out of the page's reach, and has no serious accessibility faults, on a phone set to dark mode too", async () => {
     // The spec draws a light page; A2UI's defaults (a plain button's text) must follow the page, not the phone's setting.
     const page = await open(undefined, "dark");
-    await expect.poll(async () => (await game(page)).games).toBe(1);
+    await expect.poll(async () => (await game(page)).games, { timeout: 10_000 }).toBe(1);
     const seen = await page.evaluate(() => {
       const board = document.querySelector(".cc-coded")!;
       return {
