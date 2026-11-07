@@ -67,6 +67,8 @@ export const CodedComponent = z
     kind: z.literal("coded"),
     /** game: a canvas, a loop and touch, the code a script; page: a whole HTML page, drawn full screen (what an app written as HTML becomes). */
     kit: z.enum(["game", "page"]),
+    /** Optional: the native widget or screen it stands in for, like "CupertinoSlidingSegmentedControl", so `blackbox coverage` can say which the catalog lacks. */
+    replaces: Text(120).optional(),
     inputs: z.record(CelName, CodedType).default({}),
     events: z.record(CelName, z.record(CelName, CodedType)).default({}),
     code: z
@@ -86,6 +88,9 @@ export const CodedComponent = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["code"], message: "a game kit's code is at most 64 KB" });
   })
   .refine((c) => Object.keys(c.inputs).length <= 10 && Object.keys(c.events).length <= 10, "at most 10 inputs and 10 events");
+
+/** The kinds of thing a ported app may not do that its original did. */
+export const GAP_KINDS = ["background", "widget", "notifications", "purchases", "accounts", "sync", "device", "other"] as const;
 
 export const SpecSchema = z
   .object({
@@ -161,7 +166,13 @@ export const SpecSchema = z
         /** Values the screens read, kept up to date: a data-model pointer and the CEL that computes it. */
         computed: z.record(Pointer, Cel).default({}),
         /** Examples each function must reproduce: recorded from the source's own tests, or given. */
-        vectors: z.array(z.object({ fn: CelName, in: z.array(z.unknown()).max(8), out: z.unknown(), from: z.enum(["recorded", "hint"]) }).strict()).default([]),
+        /**
+         * Examples each function must reproduce: `recorded` from the module's own tests, `app` from calls recorded while
+         * the original app ran, `hint` written by hand.
+         */
+        vectors: z
+          .array(z.object({ fn: CelName, in: z.array(z.unknown()).max(8), out: z.unknown(), from: z.enum(["recorded", "app", "hint"]) }).strict())
+          .default([]),
       })
       .strict(),
     /**
@@ -223,6 +234,14 @@ export const SpecSchema = z
       .default({}),
     /** The page-kit component that is the whole app: the spec is then that page, compiled to its HTML as written (see page.ts). */
     page: Id.optional(),
+    /**
+     * What the original app does that this one doesn't, said plainly so no one is promised it: a native feature with
+     * no web equivalent yet (background jobs, home-screen widgets, push notifications, in-app purchases...).
+     */
+    gaps: z
+      .array(z.object({ kind: z.enum(GAP_KINDS), what: Text(120), why: Text(300).optional() }).strict())
+      .max(20)
+      .optional(),
     /** What a remix may change and what stays as the partner made it. */
     mods: z
       .object({ open: z.array(PointerPattern), locked: z.array(PointerPattern) })

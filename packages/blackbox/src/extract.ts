@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { canonical, validateSpec, type Problem, type Spec } from "@cloudcrane/app-spec";
+import { canonical, catalogUse, validateSpec, type Problem, type Spec } from "@cloudcrane/app-spec";
 import { RUNTIME_VERSION } from "@cloudcrane/app-runtime";
 import { citeHash } from "veridic/citations";
+import { existsSync } from "node:fs";
 import { readFlutterTheme, ROLES } from "./readers/flutter-theme.js";
+import { gapsIn } from "./readers/gaps.js";
 import { translateModule } from "./readers/ts-pure.js";
 import { harvestVectors } from "./readers/ts-vectors.js";
 import { shingleLeaks } from "./shingles.js";
@@ -16,7 +18,7 @@ import { shingleLeaks } from "./shingles.js";
 // and how it was found. The spec itself holds no code and no paths: the
 // validator and the leak gates refuse any.
 
-export const GENERATOR = "blackbox@0.6.0";
+export const GENERATOR = "blackbox@0.7.0";
 
 /** blackbox.hints.json: where things are, and what the readers can't find yet (as spec parts). */
 export type Hints = {
@@ -26,7 +28,17 @@ export type Hints = {
    * mode: one scheme only. Left out, a theme with both gives the light colours, and the dark ones as tokens.dark.
    */
   theme?: { file: string; mode?: "dark" | "light"; roles?: Record<string, string[] | string[][]> };
-  rules?: { files: string[]; tests?: string[] };
+  /**
+   * files: modules of pure functions, translated to CEL; tests: their tests, read for examples; recorded: JSON Lines
+   * files of calls recorded while the original app ran ({"fn", "in", "out"} each), kept as examples `from: "app"`.
+   */
+  rules?: { files: string[]; tests?: string[]; recorded?: string[] };
+  /**
+   * What the original does that this one doesn't. Left out, it's suggested from the packages the app depends on
+   * (`manifests`, by default pubspec.yaml and package.json at the repo's root); given, it's the list as written.
+   */
+  gaps?: Spec["gaps"];
+  manifests?: string[];
   tokens?: Record<string, unknown>;
   surface: Spec["surface"];
   data: Spec["data"];
@@ -43,8 +55,26 @@ export type Hints = {
   mods?: Spec["mods"];
 };
 
-export type Citation = { file: string; lines: [number, number]; hash: string; how: "flutter-theme" | "ts-pure" | "ts-vectors" | "hint"; symbol?: string };
-export type Provenance = { generator: string; spec: string; source: string; elements: Record<string, Citation[]> };
+export type Citation = {
+  file: string;
+  lines: [number, number];
+  hash: string;
+  how: "flutter-theme" | "ts-pure" | "ts-vectors" | "app-recording" | "manifest" | "hint";
+  symbol?: string;
+};
+/** How much of a spec was read from the app, rather than written in hints: the parts a reviewer checks by hand are the rest. */
+export type Coverage = {
+  /** Design tokens and rules read from the code, of all of them, as a whole percentage. */
+  fromCode: number;
+  tokens: { code: number; hints: number };
+  rules: { code: number; hints: number };
+  /** Rules with at least one example to reproduce, of all rules; and the examples by where they came from. */
+  checked: { rules: number; of: number; examples: { tests: number; app: number; hints: number } };
+  /** What the screens are drawn with: catalog components placed, coded components defined, and what each replaces. */
+  screens: { catalog: number; coded: number; replaces: string[] };
+  gaps: number;
+};
+export type Provenance = { generator: string; spec: string; source: string; elements: Record<string, Citation[]>; coverage?: Coverage };
 export type Extracted = { spec: Spec | null; draft: unknown; provenance: Provenance; report: string; problems: Problem[] };
 
 const escapePointer = (s: string) => s.replace(/~/g, "~0").replace(/\//g, "~1");
@@ -59,6 +89,9 @@ export function extract(repo: string, hints: Hints): Extracted {
     return { file, lines: [a, b], hash: citeHash(lines), how, ...(symbol ? { symbol } : {}) };
   };
   const elements: Record<string, Citation[]> = {};
+  // Files read as data (recorded calls, package manifests): part of the source's fingerprint, but not code, so not
+  // held to the copied-code check, which recorded examples would trip by design.
+  const data = new Set<string>();
   const add = (pointer: string, c: Citation) => (elements[pointer] ??= []).push(c);
   const notes: string[] = [];
   const cited = new Set<string>();
@@ -133,6 +166,39 @@ export function extract(repo: string, hints: Hints): Extracted {
     if (leftOut)
       notes.push(`- ${leftOut} test call${leftOut === 1 ? "" : "s"} in ${file.split("/").pop()} not read as vectors (in a loop, or not plain values)`);
   }
+  // Examples recorded from the original app as it ran: the strongest proof a rule does what the app did.
+  const MAX_APP_EXAMPLES = 20;
+  for (const file of hints.rules?.recorded ?? []) {
+    data.add(file);
+    const perFn: Record<string, number> = {};
+    const seen = new Set<string>();
+    let unknown = 0;
+    let unread = 0;
+    read(file)
+      .split("\n")
+      .forEach((line, i) => {
+        if (!line.trim()) return;
+        let call: { fn?: unknown; in?: unknown; out?: unknown };
+        try {
+          call = JSON.parse(line) as typeof call;
+        } catch {
+          unread++;
+          return;
+        }
+        // At most 8 arguments, as a spec's examples allow.
+        if (typeof call.fn !== "string" || !Array.isArray(call.in) || call.in.length > 8 || !("out" in call)) return void unread++;
+        if (!(call.fn in functions) && !(call.fn in (hints.logic?.functions ?? {}))) return void unknown++;
+        const key = JSON.stringify([call.fn, call.in, call.out]);
+        if (seen.has(key) || (perFn[call.fn] ?? 0) >= MAX_APP_EXAMPLES) return;
+        seen.add(key);
+        perFn[call.fn] = (perFn[call.fn] ?? 0) + 1;
+        add(`/logic/vectors/${vectors.length}`, cite(file, [i + 1, i + 1], "app-recording", call.fn));
+        vectors.push({ fn: call.fn, in: call.in, out: call.out, from: "app" });
+      });
+    const name = file.split("/").pop();
+    if (unknown) notes.push(`- ${unknown} recorded call${unknown === 1 ? "" : "s"} in ${name} to functions the spec doesn't have`);
+    if (unread) notes.push(`- ${unread} line${unread === 1 ? "" : "s"} in ${name} not read as a call ({"fn", "in", "out"})`);
+  }
   for (const [name, f] of Object.entries(hints.logic?.functions ?? {})) {
     if (name in functions) notes.push(`- ${name}: the hints' version replaces the translated one`);
     functions[name] = f;
@@ -145,9 +211,29 @@ export function extract(repo: string, hints: Hints): Extracted {
   for (const pointer of Object.keys(hints.logic?.computed ?? {}))
     add(`/logic/computed/${escapePointer(pointer)}`, { file: "blackbox.hints.json", lines: [0, 0], hash: "", how: "hint" });
 
+  // Gaps: as the hints say, or suggested from the packages the app depends on.
+  let gaps: NonNullable<Spec["gaps"]> = hints.gaps ?? [];
+  const manifests = hints.manifests ?? ["pubspec.yaml", "package.json"].filter((f) => existsSync(join(repo, f)));
+  const suggested: string[] = [];
+  for (const file of manifests) {
+    data.add(file);
+    for (const g of gapsIn(file, read(file))) {
+      if (hints.gaps) {
+        if (!hints.gaps.some((h) => h.kind === g.kind)) suggested.push(`- ${g.what} (${g.package}, ${file})`);
+        continue;
+      }
+      if (gaps.length >= 20) break;
+      add(`/gaps/${gaps.length}`, cite(file, [g.line, g.line], "manifest", g.package));
+      gaps.push({ kind: g.kind, what: g.what });
+    }
+  }
+  if (hints.gaps) add("/gaps", { file: "blackbox.hints.json", lines: [0, 0], hash: "", how: "hint" });
+  gaps = gaps.slice(0, 20);
+
   // The source's fingerprint: every cited file's content, by name, hashed. A hash, never the code.
   const files = [...cited].sort();
-  const fingerprint = sha(files.map((f) => `${f}\0${sha(readFileSync(join(repo, f)))}`).join("\n"));
+  const all = [...new Set([...cited, ...data])].sort();
+  const fingerprint = sha(all.map((f) => `${f}\0${sha(readFileSync(join(repo, f)))}`).join("\n"));
 
   const draft = {
     v: 1,
@@ -161,6 +247,7 @@ export function extract(repo: string, hints: Hints): Extracted {
     ...(hints.uses ? { uses: hints.uses } : {}),
     ...(hints.screens ? { screens: hints.screens } : {}),
     ...(hints.screen ? { screen: hints.screen } : {}),
+    ...(gaps.length ? { gaps } : {}),
     journeys: hints.journeys,
     promises: hints.promises ?? [],
     tests: hints.tests ?? [],
@@ -172,14 +259,16 @@ export function extract(repo: string, hints: Hints): Extracted {
   const { spec, problems, warnings } = validateSpec(draft);
   // The second gate: nothing in the spec (outside its CEL rules) repeats the source's own words.
   const shingles = shingleLeaks(draft, files.map(read));
-  const all = [...problems, ...shingles];
+  const refused = [...problems, ...shingles];
+
+  const coverage = coverageOf(draft as unknown as Spec, elements);
 
   const counts: Record<string, number> = {};
   for (const cs of Object.values(elements)) for (const c of cs) counts[c.how] = (counts[c.how] ?? 0) + 1;
   const report = [
     `# ${hints.module.name}: what Blackbox read`,
     "",
-    `Spec ${all.length ? `**not ready**: ${all.length} problem${all.length === 1 ? "" : "s"}` : "ready"}. Generated by ${GENERATOR} for runtime ${RUNTIME_VERSION}, from ${files.length} source files (fingerprint ${fingerprint.slice(0, 12)}).`,
+    `Spec ${refused.length ? `**not ready**: ${refused.length} problem${refused.length === 1 ? "" : "s"}` : "ready"}. Generated by ${GENERATOR} for runtime ${RUNTIME_VERSION}, from ${all.length} source files (fingerprint ${fingerprint.slice(0, 12)}).`,
     "",
     "## Where each part came from",
     "",
@@ -190,14 +279,74 @@ export function extract(repo: string, hints: Hints): Extracted {
     `Read from the code: ${Object.keys(tokens).length ? "design tokens, " : ""}${Object.keys(functions).length - Object.keys(hints.logic?.functions ?? {}).length} rules, ${vectors.filter((v) => v.from === "recorded").length} vectors from the module's own tests.`,
     "From hints: the screens, the saved-data shape, composed rules and computed values, journeys and promises.",
     "",
+    "## How much came from the code",
+    "",
+    ...coverageLines(coverage),
+    "",
+    "## What it doesn't do that the original does",
+    "",
+    ...(gaps.length ? gaps.map((g) => `- ${g.what} (${g.kind})`) : ["- nothing found; say so in the hints' gaps if the original does more"]),
+    ...(suggested.length ? ["", "Its packages suggest these too, which the hints' gaps don't list:", ...suggested] : []),
+    "",
     "## Left out",
     "",
     ...(notes.length ? notes : ["- nothing"]),
     "",
-    ...(all.length ? ["## Problems", "", ...all.map((p) => `- ${p.at}: ${p.problem}`), ""] : []),
+    ...(refused.length ? ["## Problems", "", ...refused.map((p) => `- ${p.at}: ${p.problem}`), ""] : []),
     ...(warnings.length ? ["## To make it better", "", ...warnings.map((w) => `- ${w.at}: ${w.problem}`), ""] : []),
   ].join("\n");
 
-  const provenance: Provenance = { generator: GENERATOR, spec: spec ? sha(canonical(spec)) : "", source: `sha256:${fingerprint}`, elements };
-  return { spec: all.length ? null : spec, draft, provenance, report, problems: all };
+  const provenance: Provenance = { generator: GENERATOR, spec: spec ? sha(canonical(spec)) : "", source: `sha256:${fingerprint}`, elements, coverage };
+  return { spec: refused.length ? null : spec, draft, provenance, report, problems: refused };
+}
+
+/** Read from the code or written in hints, by element: an element read from the code has a citation that isn't a hint. */
+function coverageOf(spec: Spec, elements: Record<string, Citation[]>): Coverage {
+  const fromCode = (pointer: string) => (elements[pointer] ?? []).some((c) => c.how !== "hint");
+  const under = (prefix: string, depth: number) => Object.keys(elements).filter((p) => p.startsWith(prefix) && p.split("/").length === depth);
+  // Tokens: each colour /tokens/<group>/<name> (and dark ones, one deeper), or a whole token like /tokens/font-family.
+  const tokenPointers = Object.keys(elements).filter((p) => p.startsWith("/tokens/"));
+  const tokens = { code: tokenPointers.filter(fromCode).length, hints: tokenPointers.filter((p) => !fromCode(p)).length };
+  const fns = under("/logic/functions/", 4);
+  const rules = { code: fns.filter(fromCode).length, hints: fns.filter((p) => !fromCode(p)).length };
+  const vectors = spec.logic?.vectors ?? [];
+  const names = Object.keys(spec.logic?.functions ?? {});
+  const withExamples = names.filter((n) => vectors.some((v) => v.fn === n)).length;
+  const examples = {
+    tests: vectors.filter((v) => v.from === "recorded").length,
+    app: vectors.filter((v) => v.from === "app").length,
+    hints: vectors.filter((v) => v.from === "hint").length,
+  };
+  let screens: Coverage["screens"] = { catalog: 0, coded: 0, replaces: [] };
+  try {
+    const use = catalogUse({ surface: spec.surface, components: spec.components ?? {} });
+    screens = {
+      catalog: Object.values(use.catalog).reduce((a, b) => a + b, 0),
+      coded: use.coded.length,
+      replaces: use.coded.flatMap((c) => (c.replaces ? [c.replaces] : [])),
+    };
+  } catch {
+    // A surface too malformed to read is reported as a problem; coverage just leaves it at nothing.
+  }
+  const read = tokens.code + rules.code;
+  const total = read + tokens.hints + rules.hints;
+  return {
+    fromCode: total ? Math.round((read / total) * 100) : 0,
+    tokens,
+    rules,
+    checked: { rules: withExamples, of: names.length, examples },
+    screens,
+    gaps: spec.gaps?.length ?? 0,
+  };
+}
+
+function coverageLines(c: Coverage): string[] {
+  const of = (part: { code: number; hints: number }) => `${part.code} of ${part.code + part.hints}`;
+  return [
+    `**${c.fromCode}%** of the design tokens and rules were read from the code; the rest came from hints, to check by hand.`,
+    "",
+    `- Design tokens: ${of(c.tokens)} read from the code`,
+    `- Rules: ${of(c.rules)} read from the code; ${c.checked.rules} of ${c.checked.of} checked by examples (${c.checked.examples.app} recorded from the app, ${c.checked.examples.tests} from its tests, ${c.checked.examples.hints} from hints)`,
+    `- Screens: from hints, with ${c.screens.catalog} catalog components and ${c.screens.coded} coded component${c.screens.coded === 1 ? "" : "s"}${c.screens.replaces.length ? ` (standing in for ${c.screens.replaces.join(", ")})` : ""}`,
+  ];
 }

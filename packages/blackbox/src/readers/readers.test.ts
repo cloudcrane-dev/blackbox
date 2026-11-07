@@ -133,3 +133,15 @@ class Theme {
     expect(t.radius).toEqual({ value: 14, line: 7 });
   });
 });
+
+describe("gapsIn", () => {
+  it("reads a pubspec's dependencies (not dev ones) and a package.json's, once each by what", async () => {
+    const { gapsIn } = await import("./gaps.js");
+    const pub = "name: x\ndependencies:\n  in_app_purchase: ^3.0.0\n  purchases_flutter: ^6.0.0\n  http: ^1.0.0\ndev_dependencies:\n  workmanager: any\n";
+    expect(gapsIn("pubspec.yaml", pub)).toEqual([{ kind: "purchases", what: "In-app purchases or subscriptions", package: "in_app_purchase", line: 3 }]);
+    const npm = JSON.stringify({ dependencies: { "expo-notifications": "1", react: "18" }, devDependencies: { "react-native-iap": "1" } }, null, 2);
+    expect(gapsIn("package.json", npm)).toEqual([{ kind: "notifications", what: "Push or scheduled notifications", package: "expo-notifications", line: 3 }]);
+    expect(gapsIn("package.json", "{not json")).toEqual([]);
+    expect(gapsIn("Podfile", "pod 'Firebase'")).toEqual([]);
+  });
+});

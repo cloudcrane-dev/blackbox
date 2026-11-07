@@ -180,7 +180,19 @@ export function logicProblems(spec: Pick<Spec, "logic" | "data">): Problem[] {
   const problems: Problem[] = [];
   const cycle = cycleIn(spec.logic.functions);
   if (cycle) return [{ at: "/logic/functions", problem: `functions call each other in a cycle: ${cycle.join(" → ")}` }];
-  const rules = new Rules(spec.logic);
+  let rules: Rules;
+  try {
+    rules = new Rules(spec.logic);
+  } catch (e) {
+    // A function named like one CEL already has (double, int, size...) can't be registered: say which, don't crash.
+    const taken = Object.keys(spec.logic.functions).find((n) => (e as Error).message.includes(`'${n}(`) || (e as Error).message.includes(` ${n}(`));
+    return [
+      {
+        at: taken ? `/logic/functions/${token(taken)}` : "/logic/functions",
+        problem: `${taken ? `"${taken}" is` : "a function name is"} already a CEL function: name it something else`,
+      },
+    ];
+  }
   const each: [string, string][] = [
     ...Object.entries(spec.logic.functions).map(([n, f]): [string, string] => [`/logic/functions/${token(n)}/cel`, f.cel]),
     ...Object.entries(spec.logic.computed).map(([p, cel]): [string, string] => [`/logic/computed/${token(p)}`, cel]),

@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
-import { featuresOf, validateSpec } from "@cloudcrane/app-spec";
+import { catalogUse, featuresOf, validateSpec, type Spec } from "@cloudcrane/app-spec";
 import { compile, CompileError } from "@cloudcrane/app-runtime";
 import { appCsp, appPermissions } from "./csp.js";
 import { extract as extractSpec, type Hints, type Provenance } from "./extract.js";
@@ -32,12 +32,65 @@ export function validate(file: string): Outcome {
       ok: true,
       lines: [
         `${file}: ready. ${spec.journeys.length} journeys, ${spec.promises.length} promises, ${Object.keys(spec.logic.functions).length} rules.`,
+        ...gapLines(spec),
         ...better,
       ],
     };
   return {
     ok: false,
     lines: [`${file}: ${problems.length} problem${problems.length === 1 ? "" : "s"}`, ...problems.map((p) => `  ${p.at}: ${p.problem}`), ...better],
+  };
+}
+
+const gapLines = (spec: Spec) => (spec.gaps?.length ? [`  Doesn't do what the original does: ${spec.gaps.map((g) => g.what.toLowerCase()).join("; ")}.`] : []);
+
+/**
+ * blackbox coverage <spec.json...>: what the specs' screens are drawn with, added up: each catalog component and how
+ * often it's placed, and each coded component by the native widget it replaces, most needed first, so the catalog
+ * grows where ports fall back to code. Specs that don't validate are counted as they're written, and named.
+ */
+export function coverage(files: string[]): Outcome {
+  const catalog: Record<string, number> = {};
+  const fallbacks: Record<string, { specs: Set<string>; placed: number }> = {};
+  const unreadable: string[] = [];
+  let coded = 0;
+  for (const file of files) {
+    const raw = readSpec(file) as Spec;
+    let use;
+    try {
+      use = catalogUse({ surface: raw.surface, components: raw.components ?? {} });
+    } catch {
+      unreadable.push(file);
+      continue;
+    }
+    for (const [c, n] of Object.entries(use.catalog)) catalog[c] = (catalog[c] ?? 0) + n;
+    for (const c of use.coded) {
+      coded++;
+      const key = c.replaces ?? (c.kit === "page" ? "(a whole page)" : "(a game, or replaces not said)");
+      const f = (fallbacks[key] ??= { specs: new Set(), placed: 0 });
+      f.specs.add(file);
+      f.placed += c.placed;
+    }
+  }
+  const byCount = <T>(entries: [string, T][], n: (t: T) => number) => entries.sort(([a, x], [b, y]) => n(y) - n(x) || (a < b ? -1 : 1));
+  const placed = Object.values(catalog).reduce((a, b) => a + b, 0);
+  const share = placed + coded ? Math.round((placed / (placed + coded)) * 100) : 0;
+  return {
+    ok: !unreadable.length,
+    lines: [
+      `${files.length - unreadable.length} spec${files.length === 1 ? "" : "s"}: ${placed} catalog components placed, ${coded} coded component${coded === 1 ? "" : "s"} (${share}% drawn by the catalog).`,
+      "",
+      "Coded components, by what they replace (most needed in the catalog first):",
+      ...(coded
+        ? byCount(Object.entries(fallbacks), (f) => f.specs.size).map(
+            ([what, f]) => `  ${what}: ${f.specs.size} spec${f.specs.size === 1 ? "" : "s"}, placed ${f.placed} time${f.placed === 1 ? "" : "s"}`,
+          )
+        : ["  none"]),
+      "",
+      "Catalog components used:",
+      ...byCount(Object.entries(catalog), (n) => n).map(([c, n]) => `  ${c}: ${n}`),
+      ...unreadable.map((f) => `${f}: its surface couldn't be read`),
+    ],
   };
 }
 
