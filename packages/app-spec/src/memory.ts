@@ -30,7 +30,9 @@ export function memoryProblems(spec: Spec): Problem[] {
     for (const e of validate.errors ?? [])
       problems.push({ at: `data.initial${e.instancePath.replace(/\//g, ".")}`, problem: `doesn't fit data.schema: ${e.message ?? "invalid"}` });
 
-  // Every step from 1 to the current version, once each, so any older phone can come up to date.
+  // Every step from 1 to the current version, once each, so any older phone can come up to date. A page spec (an HTML
+  // app as a spec) moves its own data in its own code, as the page it is, so it has no migrations to check.
+  if (spec.page) return [...problems, ...personalProblems(spec)];
   const steps = new Map<number, number>();
   for (const m of spec.data.migrations) steps.set(m.from, (steps.get(m.from) ?? 0) + 1);
   for (let from = 1; from < spec.data.version; from++) {
@@ -39,10 +41,14 @@ export function memoryProblems(spec: Spec): Problem[] {
     if (n > 1) problems.push({ at: "data.migrations", problem: `${n} steps from version ${from}; there must be one` });
   }
 
-  // Personal fields name something the saved data has.
-  for (const pointer of spec.data.personal ?? [])
-    if (!pointsInto(spec.data.schema, pointer)) problems.push({ at: `data.personal ${pointer}`, problem: "the saved data has no such field (data.schema)" });
-  return problems;
+  return [...problems, ...personalProblems(spec)];
+}
+
+/** Personal fields name something the saved data has. */
+function personalProblems(spec: Spec): Problem[] {
+  return (spec.data.personal ?? []).flatMap((pointer) =>
+    pointsInto(spec.data.schema, pointer) ? [] : [{ at: `data.personal ${pointer}`, problem: "the saved data has no such field (data.schema)" }],
+  );
 }
 
 /** Whether a JSON Pointer names a field the schema describes (properties all the way down; arrays and maps by their items). */

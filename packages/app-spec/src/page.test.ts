@@ -21,6 +21,12 @@ const app = (over: Partial<PageApp> = {}): PageApp => ({
 });
 
 describe("an HTML app as a spec", () => {
+  it("takes a page on any data version: the page moves its own data, so it has no migrations to check", () => {
+    const { spec, problems } = validateSpec(wrapPage(app({ data: { version: 3, key: "tip-split" } })));
+    expect(problems).toEqual([]);
+    expect(spec!.data.version).toBe(3);
+  });
+
   it("wraps the page into a valid spec whose one component is the page, and finds the page in it again", () => {
     const { spec, problems } = validateSpec(wrapPage(app()));
     expect(problems).toEqual([]);

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { build, coverage, diff, extract, preview, validate, type Outcome } from "./commands.js";
+import { build, coverage, diff, extract, init, plan, preview, validate, type Outcome } from "./commands.js";
 
 // blackbox: write a CloudCrane app spec from an app's code, see what a code
 // change touched, and validate, build and preview a spec.
 
 const USAGE = `blackbox <command> <path> [options]
 
+  init     <repo>                      find the platform and its files, and write a starter blackbox.hints.json
+  plan     <repo> [--hints FILE]       what's left to write for the spec, by part, with the files to read
   extract  <repo> [--hints FILE] [--out DIR]   write a spec from an app's code and its blackbox.hints.json
   diff     <repo> [--module ID] [--range A..B] which parts of the spec a code change touched
   validate <spec.json>                 check a spec: schema, A2UI surface, rules, leaks
@@ -41,6 +43,8 @@ async function main(argv: string[]): Promise<number> {
     console.error(`${command} needs a spec file.\n\n${USAGE}`);
     return 1;
   }
+  if (command === "init") return print(init(file));
+  if (command === "plan") return print(plan(file, values.hints));
   if (command === "extract") return print(extract(file, values.hints, values.out));
   if (command === "diff") return print(diff(file, values.module, values.range));
   if (command === "validate") return print(validate(file));

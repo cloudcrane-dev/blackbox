@@ -2,7 +2,9 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { build, coverage, preview, validate } from "./commands.js";
+import { build, coverage, extract, init, plan, preview, validate } from "./commands.js";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 // The CLI's commands: validate says what's wrong (or that it's ready), build
 // writes the same page the compiler golden pins, and preview serves it under
@@ -87,5 +89,39 @@ describe("blackbox", () => {
     expect(text).toMatch(/SnakeGameWidget: 1 spec, placed 1 time/);
     expect(text).toMatch(/\(a whole page\): 1 spec/);
     expect(text).toMatch(/Catalog components used:\n {2}\w+: \d+/);
+  });
+
+  it("init, plan, extract: a Flutter app's files found, what's left listed by part, and the spec written once it's done", () => {
+    const repo = mkdtempSync(join(tmpdir(), "receipts-"));
+    const put = (f: string, text: string) => {
+      mkdirSync(dirname(join(repo, f)), { recursive: true });
+      writeFileSync(join(repo, f), text);
+    };
+    put("pubspec.yaml", "name: receipts\ndependencies:\n  firebase_messaging: ^15.0.0\n");
+    put("lib/screens/home_screen.dart", "");
+    put("lib/l10n/app_en.arb", JSON.stringify({ empty: "No receipts yet" }));
+    put("ios/Runner/Info.plist", `<plist version="1.0"><dict><key>NSCameraUsageDescription</key><string>To scan receipts.</string></dict></plist>`);
+    put("android/app/src/main/AndroidManifest.xml", `<manifest><uses-permission android:name="android.permission.CAMERA"/></manifest>`);
+    put("android/app/src/main/res/values/colors.xml", `<resources><color name="colorPrimary">#0F766E</color></resources>`);
+
+    const started = init(repo);
+    expect(started.ok).toBe(true);
+    expect(started.lines[0]).toMatch(/flutter, ios, android\./);
+    expect(started.lines[1]).toMatch(/Found 2 manifests, 1 colour file, 1 string file, 1 package manifest, and 1 screen file/);
+    expect(init(repo).ok).toBe(false);
+    const hints = JSON.parse(readFileSync(join(repo, "blackbox.hints.json"), "utf8"));
+    expect(hints.colors).toEqual(["android/app/src/main/res/values/colors.xml"]);
+
+    const left = plan(repo).lines.join("\n");
+    expect(left).toMatch(/What it does:\n {2}- Say what the app is for/);
+    expect(left).toMatch(/Write the screens with the catalog[^\n]*Read: lib\/screens\/home_screen.dart; labels are in strings.json/);
+    expect(left).toMatch(/Colours missing: background, on-background, on-primary/);
+    expect(left).toMatch(/What it keeps:\n {2}- Write the saved data's JSON Schema/);
+    expect(left).toMatch(/Declared by the app, not in uses: camera: "To scan receipts."/);
+
+    const written = extract(repo);
+    expect(written.lines[1]).toMatch(/strings.json/);
+    expect(JSON.parse(readFileSync(join(repo, "blackbox", hints.module.id, "strings.json"), "utf8"))).toEqual({ empty: "No receipts yet" });
+    expect(plan(join(repo, "nowhere")).ok).toBe(false);
   });
 });
