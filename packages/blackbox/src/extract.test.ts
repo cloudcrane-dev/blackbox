@@ -66,13 +66,14 @@ const HINTS: Hints = {
   journeys: [{ id: "J-1", title: "Log water", steps: [{ id: "J-1.1", text: "See how many glasses are left today" }] }],
 };
 
-function partnerRepo(): string {
+function partnerRepo(extra: Record<string, string> = {}): string {
   const repo = mkdtempSync(join(tmpdir(), "partner-"));
   mkdirSync(join(repo, "lib"));
   mkdirSync(join(repo, "server"));
   writeFileSync(join(repo, "lib/theme.dart"), THEME);
   writeFileSync(join(repo, "server/rules.ts"), RULES);
   writeFileSync(join(repo, "server/rules.test.ts"), RULES_TEST);
+  for (const [file, text] of Object.entries(extra)) writeFileSync(join(repo, file), text);
   const git = (...a: string[]) => execFileSync("git", a, { cwd: repo, stdio: "pipe" });
   git("init", "-q");
   git("-c", "user.email=t@example.com", "-c", "user.name=t", "add", ".");
@@ -127,6 +128,90 @@ describe("extract", () => {
     expect(r.problems.map((p) => p.problem).join("\n")).toMatch(/repeats the source word for word|looks like/);
     expect(shingleLeaks({ purpose: "one two three four five six seven eight nine" }, ["zero one two three four five six seven eight"])).toHaveLength(1);
     expect(shingleLeaks({ logic: { functions: { f: { cel: "a b c d e f g h" } } } }, ["a b c d e f g h"])).toEqual([]);
+  });
+});
+
+const PUBSPEC = `name: water
+dependencies:
+  flutter:
+    sdk: flutter
+  home_widget: ^0.7.0 # the streak widget
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.0.0
+dev_dependencies:
+  workmanager: ^0.5.0
+`;
+// Calls recorded while the original app ran: one per line, as a few lines in the app write them.
+const RECORDED = [
+  '{"fn":"glassesLeft","in":[0],"out":8}',
+  '{"fn":"glassesLeft","in":[0],"out":8}',
+  '{"fn":"goalMet","in":[3],"out":false}',
+  '{"fn":"refill","in":[1],"out":2}',
+  "not a call",
+].join("\n");
+
+describe("extract: how close the copy is", () => {
+  it("suggests gaps from the packages the app depends on, citing each, and lists them in the report", () => {
+    const r = extract(partnerRepo({ "pubspec.yaml": PUBSPEC }), HINTS);
+    expect(r.problems).toEqual([]);
+    // Once each by what: two notification packages are one gap; a dev dependency isn't one.
+    expect(r.spec!.gaps).toEqual([
+      { kind: "widget", what: "A home-screen widget" },
+      { kind: "notifications", what: "Push notifications" },
+      { kind: "notifications", what: "Scheduled notifications" },
+    ]);
+    expect(r.provenance.elements["/gaps/0"]).toEqual([
+      expect.objectContaining({ file: "pubspec.yaml", lines: [5, 5], how: "manifest", symbol: "home_widget" }),
+    ]);
+    expect(r.report).toMatch(/## What it doesn't do that the original does\n\n- A home-screen widget \(widget\)/);
+  });
+
+  it("takes the hints' gaps as written, and names what the packages suggest beyond them", () => {
+    const gaps = [{ kind: "widget" as const, what: "The streak widget" }];
+    const r = extract(partnerRepo({ "pubspec.yaml": PUBSPEC }), { ...HINTS, gaps });
+    expect(r.spec!.gaps).toEqual(gaps);
+    expect(r.report).toMatch(/suggest these too[^]*Push notifications \(firebase_messaging, pubspec.yaml\)/);
+    expect(r.report).not.toMatch(/A home-screen widget \(home_widget/);
+  });
+
+  it("keeps calls recorded from the app as examples, once each, and says what it couldn't use", () => {
+    const repo = partnerRepo({ "recorded.jsonl": RECORDED });
+    const r = extract(repo, { ...HINTS, rules: { ...HINTS.rules!, recorded: ["recorded.jsonl"] } });
+    expect(r.problems).toEqual([]);
+    const app = r.spec!.logic.vectors.filter((v) => v.from === "app");
+    expect(app).toEqual([
+      { fn: "glassesLeft", in: [0], out: 8, from: "app" },
+      { fn: "goalMet", in: [3], out: false, from: "app" },
+    ]);
+    expect(r.report).toMatch(/1 recorded call in recorded.jsonl to functions the spec doesn't have/);
+    expect(r.report).toMatch(/1 line in recorded.jsonl not read as a call/);
+    // Each is cited at its line, so a change to the recording marks it.
+    const cited = Object.values(r.provenance.elements)
+      .flat()
+      .filter((c) => c.how === "app-recording");
+    expect(cited.map((c) => c.lines[0])).toEqual([1, 3]);
+  });
+
+  it("refuses a recorded call the translated rule doesn't reproduce: the copy doesn't do what the app did", () => {
+    const repo = partnerRepo({ "recorded.jsonl": '{"fn":"glassesLeft","in":[2],"out":7}' });
+    const r = extract(repo, { ...HINTS, rules: { ...HINTS.rules!, recorded: ["recorded.jsonl"] } });
+    expect(r.spec).toBeNull();
+    expect(r.problems.map((p) => p.problem)).toContain("glassesLeft(2) gives 6, not 7");
+  });
+
+  it("says how much was read from the code, and how many rules examples check", () => {
+    const r = extract(partnerRepo({ "recorded.jsonl": RECORDED }), { ...HINTS, rules: { ...HINTS.rules!, recorded: ["recorded.jsonl"] } });
+    const c = r.provenance.coverage!;
+    expect(c.rules).toEqual({ code: 2, hints: 0 });
+    expect(c.tokens.hints).toBe(0);
+    expect(c.fromCode).toBe(100);
+    expect(c.checked).toEqual({ rules: 2, of: 2, examples: { tests: 3, app: 2, hints: 0 } });
+    expect(c.screens).toEqual({ catalog: 2, coded: 0, replaces: [] });
+    expect(r.report).toMatch(/\*\*100%\*\* of the design tokens and rules were read from the code/);
+    // A rule written in the hints counts against it.
+    const hinted = extract(partnerRepo(), { ...HINTS, logic: { ...HINTS.logic, functions: { twice: { params: ["n"], cel: "n * 2" } } } });
+    expect(hinted.provenance.coverage!.rules).toEqual({ code: 2, hints: 1 });
+    expect(hinted.provenance.coverage!.fromCode).toBeLessThan(100);
   });
 });
 

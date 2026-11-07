@@ -7,6 +7,7 @@ import { pageProblems } from "./page.js";
 import { designWarnings, statesWarnings } from "./design.js";
 import { memoryProblems } from "./memory.js";
 import { reachProblems } from "./reach.js";
+import { rulesWarnings } from "./fidelity.js";
 
 // Everything wrong with a spec, collected rather than stopping at the first: the
 // envelope's shape, then the A2UI surface, then references between parts, what it keeps (memory.ts) and what its code
@@ -51,7 +52,7 @@ export function validateSpec(input: unknown, catalog?: Catalog): { spec: Spec | 
       problems.push({ at: `data.migrations ${m.from}`, problem: "steps go one version at a time, up to data.version" });
   problems.push(...codedProblems(spec), ...pageProblems(spec), ...logicProblems(spec), ...leakProblems(spec), ...memoryProblems(spec), ...reachProblems(spec));
   for (const locked of spec.mods.locked) if (spec.mods.open.includes(locked)) problems.push({ at: `mods ${locked}`, problem: "both open and locked" });
-  const warnings = [...designWarnings(spec), ...statesWarnings(spec)];
+  const warnings = [...designWarnings(spec), ...statesWarnings(spec), ...rulesWarnings(spec)];
   return { spec: problems.length ? null : spec, problems, warnings };
 }
 

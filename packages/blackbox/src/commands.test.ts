@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { build, preview, validate } from "./commands.js";
+import { build, coverage, preview, validate } from "./commands.js";
 
 // The CLI's commands: validate says what's wrong (or that it's ready), build
 // writes the same page the compiler golden pins, and preview serves it under
@@ -14,7 +14,11 @@ const dir = mkdtempSync(join(tmpdir(), "blackbox-"));
 
 describe("blackbox", () => {
   it("validate: ready for a good spec, every problem for a bad one", () => {
-    expect(validate(SPEC)).toEqual({ ok: true, lines: [expect.stringMatching(/ready\. 3 journeys, 3 promises, \d+ rules\./)] });
+    const ready = validate(SPEC);
+    expect(ready.ok).toBe(true);
+    expect(ready.lines[0]).toMatch(/ready\. 3 journeys, 3 promises, \d+ rules\./);
+    // Ready, and told which rules nothing checks yet: the example's composed rules have no examples of their own.
+    expect(ready.lines.slice(1).join("\n")).toMatch(/streakStep, streakFromHistory, checkins, dayStatus have no examples/);
     const bad = JSON.parse(readFileSync(SPEC, "utf8"));
     bad.module.purpose = "see lib/theme.dart";
     bad.extra = 1;
@@ -28,7 +32,7 @@ describe("blackbox", () => {
     writeFileSync(join(dir, "light.json"), JSON.stringify(light));
     const better = validate(join(dir, "light.json"));
     expect(better.ok).toBe(true);
-    expect(better.lines.join("\n")).toMatch(/1 thing to make it better:\n {4}tokens: no dark colours/);
+    expect(better.lines.join("\n")).toMatch(/2 things to make it better:\n {4}tokens: no dark colours/);
   });
 
   it("build: writes the golden page", () => {
@@ -68,5 +72,20 @@ describe("blackbox", () => {
     } finally {
       server.close();
     }
+  });
+
+  it("coverage: adds up what specs are drawn with, coded components by what they replace, most needed first", () => {
+    const fixture = (name: string) => new URL(`../../../fixtures/${name}/spec.json`, import.meta.url).pathname;
+    const snake = JSON.parse(readFileSync(fixture("snake"), "utf8"));
+    const name = Object.keys(snake.components)[0]!;
+    snake.components[name].replaces = "SnakeGameWidget";
+    writeFileSync(join(dir, "snake.json"), JSON.stringify(snake));
+    const out = coverage([SPEC, join(dir, "snake.json"), fixture("notes")]);
+    expect(out.ok).toBe(true);
+    expect(out.lines[0]).toMatch(/^3 specs: \d+ catalog components placed, 2 coded components \(\d+% drawn by the catalog\)\.$/);
+    const text = out.lines.join("\n");
+    expect(text).toMatch(/SnakeGameWidget: 1 spec, placed 1 time/);
+    expect(text).toMatch(/\(a whole page\): 1 spec/);
+    expect(text).toMatch(/Catalog components used:\n {2}\w+: \d+/);
   });
 });

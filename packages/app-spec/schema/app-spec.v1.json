@@ -301,6 +301,7 @@
                 "type": "string",
                 "enum": [
                   "recorded",
+                  "app",
                   "hint"
                 ]
               }
@@ -547,6 +548,11 @@
               "page"
             ]
           },
+          "replaces": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
           "inputs": {
             "type": "object",
             "additionalProperties": {
@@ -608,6 +614,43 @@
     "page": {
       "type": "string",
       "pattern": "^[a-z][a-zA-Z0-9_.-]{0,63}$"
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "background",
+              "widget",
+              "notifications",
+              "purchases",
+              "accounts",
+              "sync",
+              "device",
+              "other"
+            ]
+          },
+          "what": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "kind",
+          "what"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 20
     },
     "mods": {
       "type": "object",

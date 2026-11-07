@@ -1,7 +1,7 @@
 // The CloudCrane app spec: its schema, the A2UI surface check, canonical JSON
 // and the JSON Schema export. See the repo README.
 export { A2UI_VERSION, BASIC_CATALOG, surfaceProblems, type Catalog, type Problem } from "./a2ui.js";
-export { Id, Pointer, PointerPattern, SpecSchema, Tokens, type Spec, type TokenNode } from "./schema.js";
+export { GAP_KINDS, Id, Pointer, PointerPattern, SpecSchema, Tokens, type Spec, type TokenNode } from "./schema.js";
 export { validateSpec } from "./validate.js";
 export { canonical } from "./canonical.js";
 export { specJsonSchema } from "./jsonschema.js";
@@ -14,3 +14,4 @@ export { pageOf, pageProblems, wrapPage, type PageApp } from "./page.js";
 export { designWarnings, statesWarnings, contrast, rgbOf, CORE_ROLES, TEXT_PAIRS, TEXT_CONTRAST } from "./design.js";
 export { memoryProblems, keptShape, type KeptType } from "./memory.js";
 export { reachProblems, hostsNamedIn, buildsAddressAtRuntime } from "./reach.js";
+export { rulesWarnings, catalogUse, type CatalogUse } from "./fidelity.js";
