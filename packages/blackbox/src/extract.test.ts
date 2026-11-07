@@ -154,11 +154,10 @@ describe("extract: how close the copy is", () => {
   it("suggests gaps from the packages the app depends on, citing each, and lists them in the report", () => {
     const r = extract(partnerRepo({ "pubspec.yaml": PUBSPEC }), HINTS);
     expect(r.problems).toEqual([]);
-    // Once each by what: two notification packages are one gap; a dev dependency isn't one.
+    // One per kind: push and scheduled notifications are one gap; a dev dependency isn't one.
     expect(r.spec!.gaps).toEqual([
       { kind: "widget", what: "A home-screen widget" },
       { kind: "notifications", what: "Push notifications" },
-      { kind: "notifications", what: "Scheduled notifications" },
     ]);
     expect(r.provenance.elements["/gaps/0"]).toEqual([
       expect.objectContaining({ file: "pubspec.yaml", lines: [5, 5], how: "manifest", symbol: "home_widget" }),
@@ -212,6 +211,80 @@ describe("extract: how close the copy is", () => {
     const hinted = extract(partnerRepo(), { ...HINTS, logic: { ...HINTS.logic, functions: { twice: { params: ["n"], cel: "n * 2" } } } });
     expect(hinted.provenance.coverage!.rules).toEqual({ code: 2, hints: 1 });
     expect(hinted.provenance.coverage!.fromCode).toBeLessThan(100);
+  });
+});
+
+const INFO = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>To show the weather where you are.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>To photograph a glass.</string>
+  <key>UIBackgroundModes</key>
+  <array><string>fetch</string></array>
+</dict></plist>`;
+const MANIFEST = `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.READ_CONTACTS" />
+</manifest>`;
+const COLORS = `<resources>\n  <color name="colorOnPrimary">#FFFFFF</color>\n  <color name="colorPrimary">#FF000000</color>\n</resources>`;
+const NIGHT = `<resources>\n  <color name="colorOnPrimary">#111111</color>\n</resources>`;
+const STRINGS = `<resources>\n  <string name="left">Drink up, %d to go</string>\n</resources>`;
+
+describe("extract: what the platform files say", () => {
+  const nativeRepo = () =>
+    partnerRepo({
+      "Info.plist": INFO,
+      "AndroidManifest.xml": MANIFEST,
+      "colors.xml": COLORS,
+      "night-colors.xml": NIGHT,
+      "strings.xml": STRINGS,
+    });
+  // Named in the hints (a repo laid out like a real app is found by name; see discover's tests).
+  const platformHints = {
+    ...HINTS,
+    declares: ["Info.plist", "AndroidManifest.xml"],
+    colors: ["colors.xml"],
+    strings: ["strings.xml"],
+  };
+
+  it("adds the features the app declares with its own why, and suggests the rest", () => {
+    const r = extract(nativeRepo(), platformHints);
+    expect(r.problems).toEqual([]);
+    // Location has the developer's why; the camera needs a page-kit component, and contacts has no why (Android).
+    expect(r.spec!.uses).toEqual([{ what: "location", why: "To show the weather where you are." }]);
+    expect(r.provenance.elements["/uses/0"]).toEqual([expect.objectContaining({ file: "Info.plist", lines: [3, 3], how: "declares" })]);
+    expect(r.suggested.uses).toEqual([
+      'camera: "To photograph a glass." (NSCameraUsageDescription, Info.plist)',
+      "contacts (android.permission.READ_CONTACTS, AndroidManifest.xml)",
+    ]);
+    expect(r.spec!.gaps).toEqual([{ kind: "background", what: "Work that runs in the background while the app is closed" }]);
+  });
+
+  it("takes the hints' uses as written, suggesting what else the app declares", () => {
+    const r = extract(nativeRepo(), { ...platformHints, uses: [{ what: "location", why: "For your local forecast" }] });
+    expect(r.spec!.uses).toEqual([{ what: "location", why: "For your local forecast" }]);
+    expect(r.suggested.uses).toHaveLength(2);
+  });
+
+  it("fills colour roles the Flutter theme didn't set from the platform's files, and keeps the theme's where both say", () => {
+    const r = extract(nativeRepo(), { ...platformHints, colors: ["colors.xml", "night-colors.xml"] });
+    const tokens = r.spec!.tokens as { color: Record<string, { $value: string }> };
+    // The Flutter theme set primary (#3366ff) and on-primary (black); colors.xml doesn't override them.
+    expect(tokens.color["primary"]!.$value).toBe("#3366ff");
+    expect(r.provenance.elements["/tokens/color/primary"]).toEqual([expect.objectContaining({ how: "flutter-theme" })]);
+    const lone = extract(partnerRepo({ "colors.xml": COLORS }), { ...HINTS, theme: undefined, declares: [], strings: [], colors: ["colors.xml"] });
+    const t = lone.draft as { tokens: { color: Record<string, { $value: string }> } };
+    expect(t.tokens.color["primary"]!.$value).toBe("#000000");
+    expect(lone.provenance.elements["/tokens/color/on-primary"]).toEqual([
+      expect.objectContaining({ file: "colors.xml", lines: [2, 2], how: "platform-colors" }),
+    ]);
+  });
+
+  it("gives the words people see as strings, not in the spec", () => {
+    const r = extract(nativeRepo(), platformHints);
+    expect(r.strings).toEqual({ left: "Drink up, %d to go" });
+    expect(JSON.stringify(r.spec)).not.toContain("Drink up");
+    expect(r.report).toMatch(/1 strings people see are in strings.json/);
   });
 });
 

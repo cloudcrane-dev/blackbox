@@ -7,6 +7,10 @@ import { citeHash } from "veridic/citations";
 import { existsSync } from "node:fs";
 import { readFlutterTheme, ROLES } from "./readers/flutter-theme.js";
 import { gapsIn } from "./readers/gaps.js";
+import { byRole, colorsIn, type FoundColor } from "./readers/colors.js";
+import { declaredIn, mergeDeclared } from "./readers/declares.js";
+import { discover, type Found } from "./readers/platform.js";
+import { stringsIn } from "./readers/strings.js";
 import { translateModule } from "./readers/ts-pure.js";
 import { harvestVectors } from "./readers/ts-vectors.js";
 import { shingleLeaks } from "./shingles.js";
@@ -18,7 +22,7 @@ import { shingleLeaks } from "./shingles.js";
 // and how it was found. The spec itself holds no code and no paths: the
 // validator and the leak gates refuse any.
 
-export const GENERATOR = "blackbox@0.7.0";
+export const GENERATOR = "blackbox@0.8.0";
 
 /** blackbox.hints.json: where things are, and what the readers can't find yet (as spec parts). */
 export type Hints = {
@@ -39,6 +43,14 @@ export type Hints = {
    */
   gaps?: Spec["gaps"];
   manifests?: string[];
+  /**
+   * Where the platform files are; each left out is found by name in the repo (AndroidManifest.xml, Info.plist and
+   * *.entitlements; colors.xml, colour sets and CSS variables; strings.xml, .xcstrings, .strings and .arb). An empty
+   * list reads none.
+   */
+  declares?: string[];
+  colors?: string[];
+  strings?: string[];
   tokens?: Record<string, unknown>;
   surface: Spec["surface"];
   data: Spec["data"];
@@ -59,7 +71,7 @@ export type Citation = {
   file: string;
   lines: [number, number];
   hash: string;
-  how: "flutter-theme" | "ts-pure" | "ts-vectors" | "app-recording" | "manifest" | "hint";
+  how: "flutter-theme" | "platform-colors" | "ts-pure" | "ts-vectors" | "app-recording" | "manifest" | "declares" | "hint";
   symbol?: string;
 };
 /** How much of a spec was read from the app, rather than written in hints: the parts a reviewer checks by hand are the rest. */
@@ -75,7 +87,17 @@ export type Coverage = {
   gaps: number;
 };
 export type Provenance = { generator: string; spec: string; source: string; elements: Record<string, Citation[]>; coverage?: Coverage };
-export type Extracted = { spec: Spec | null; draft: unknown; provenance: Provenance; report: string; problems: Problem[] };
+/** `strings`: the words people see, by key, for whoever writes the screens (written as strings.json, not in the spec). */
+/** `suggested`: what the app declares or depends on that the spec doesn't say, for the hints (each a line of the report). */
+export type Extracted = {
+  spec: Spec | null;
+  draft: unknown;
+  provenance: Provenance;
+  report: string;
+  problems: Problem[];
+  strings: Record<string, string>;
+  suggested: { uses: string[]; gaps: string[] };
+};
 
 const escapePointer = (s: string) => s.replace(/~/g, "~0").replace(/\//g, "~1");
 const sha = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
@@ -137,6 +159,34 @@ export function extract(repo: string, hints: Hints): Extracted {
       tokens[group] = value as Record<string, unknown>;
       add(`/tokens/${escapePointer(group)}`, { file: "blackbox.hints.json", lines: [0, 0], hash: "", how: "hint" });
     }
+  }
+
+  // Colours from the platform's own files (Android, iOS, CSS), for each role the Flutter theme and the hints didn't set.
+  const found: Found | null = hints.declares && hints.colors && hints.strings ? null : discover(repo);
+  const colorFiles = hints.colors ?? found!.colors;
+  const colours: FoundColor[] = [];
+  for (const file of colorFiles) {
+    data.add(file);
+    colours.push(...colorsIn(file, read(file)));
+  }
+  const { light, dark: darkColours } = byRole(colours);
+  const setColour = (into: Record<string, Record<string, unknown>>, pointer: string, c: FoundColor) => {
+    const group = (into["color"] ??= { $type: "color" }) as Record<string, unknown>;
+    if (c.role in group) return;
+    group[c.role] = { $value: c.value };
+    add(pointer, cite(c.file, [c.line, c.line], "platform-colors", c.name));
+  };
+  for (const c of light.values()) setColour(tokens, `/tokens/color/${escapePointer(c.role)}`, c);
+  for (const c of darkColours.values()) {
+    if (light.get(c.role)?.value === c.value) continue;
+    setColour((tokens["dark"] ??= {}) as Record<string, Record<string, unknown>>, `/tokens/dark/color/${escapePointer(c.role)}`, c);
+  }
+
+  // The words people see, for whoever writes the screens.
+  const strings: Record<string, string> = {};
+  for (const file of hints.strings ?? found!.strings) {
+    data.add(file);
+    for (const st of stringsIn(file, read(file))) if (!(st.key in strings)) strings[st.key] = st.text;
   }
 
   // Rules: the pure functions translated to CEL, vectors from the module's own tests.
@@ -223,12 +273,41 @@ export function extract(repo: string, hints: Hints): Extracted {
         continue;
       }
       if (gaps.length >= 20) break;
+      if (sameGap(gaps, g)) continue;
       add(`/gaps/${gaps.length}`, cite(file, [g.line, g.line], "manifest", g.package));
       gaps.push({ kind: g.kind, what: g.what });
     }
   }
+  // What the app declares to the phone: its features (uses, with the developer's own why on iOS) and what a web app
+  // can't do (gaps).
+  const declareFiles = hints.declares ?? found!.declares;
+  for (const file of declareFiles) data.add(file);
+  const declared = mergeDeclared(declareFiles.map((f) => declaredIn(f, read(f), hints.module.name)));
+  for (const g of declared.gaps) {
+    if (hints.gaps) {
+      if (!hints.gaps.some((h) => h.kind === g.kind)) suggested.push(`- ${g.what} (${g.source}, ${g.file})`);
+      continue;
+    }
+    if (gaps.length >= 20 || sameGap(gaps, g)) continue;
+    add(`/gaps/${gaps.length}`, cite(g.file, [g.line, g.line], "declares", g.source));
+    gaps.push({ kind: g.kind, what: g.what });
+  }
   if (hints.gaps) add("/gaps", { file: "blackbox.hints.json", lines: [0, 0], hash: "", how: "hint" });
   gaps = gaps.slice(0, 20);
+
+  // Uses: as the hints say; or what the app declares with a why in its own words. The camera and microphone work only
+  // in a page-kit component, which extract never writes, so they're suggested in the report instead, as is anything
+  // declared without a why (Android permissions have none).
+  const uses: NonNullable<Spec["uses"]> = hints.uses ? [...hints.uses] : [];
+  const suggestedUses: string[] = [];
+  for (const u of declared.uses) {
+    if (uses.some((x) => x.what === u.what)) continue;
+    const canAdd = !hints.uses && u.why && u.what !== "camera" && u.what !== "microphone";
+    if (canAdd) {
+      add(`/uses/${uses.length}`, cite(u.file, [u.line, u.line], "declares", u.source));
+      uses.push({ what: u.what, why: u.why!.slice(0, 300) });
+    } else suggestedUses.push(`- ${u.what}${u.why ? `: "${u.why}"` : ""} (${u.source}, ${u.file})`);
+  }
 
   // The source's fingerprint: every cited file's content, by name, hashed. A hash, never the code.
   const files = [...cited].sort();
@@ -244,7 +323,7 @@ export function extract(repo: string, hints: Hints): Extracted {
     data: hints.data,
     logic: { consts: { ...consts, ...(hints.logic?.consts ?? {}) }, functions, computed: hints.logic?.computed ?? {}, vectors },
     network: hints.network ?? [],
-    ...(hints.uses ? { uses: hints.uses } : {}),
+    ...(uses.length ? { uses } : {}),
     ...(hints.screens ? { screens: hints.screens } : {}),
     ...(hints.screen ? { screen: hints.screen } : {}),
     ...(gaps.length ? { gaps } : {}),
@@ -286,7 +365,15 @@ export function extract(repo: string, hints: Hints): Extracted {
     "## What it doesn't do that the original does",
     "",
     ...(gaps.length ? gaps.map((g) => `- ${g.what} (${g.kind})`) : ["- nothing found; say so in the hints' gaps if the original does more"]),
-    ...(suggested.length ? ["", "Its packages suggest these too, which the hints' gaps don't list:", ...suggested] : []),
+    ...(suggested.length ? ["", "Its packages and manifests suggest these too, which the hints' gaps don't list:", ...suggested] : []),
+    "",
+    "## Phone features",
+    "",
+    ...(uses.length ? uses.map((u) => `- ${u.what}: ${u.why}`) : ["- none"]),
+    ...(suggestedUses.length
+      ? ["", "Declared by the app but not in the spec: add each to the hints' uses with why if the copy needs it:", ...suggestedUses]
+      : []),
+    ...(Object.keys(strings).length ? ["", `${Object.keys(strings).length} strings people see are in strings.json, for writing the screens.`] : []),
     "",
     "## Left out",
     "",
@@ -297,7 +384,16 @@ export function extract(repo: string, hints: Hints): Extracted {
   ].join("\n");
 
   const provenance: Provenance = { generator: GENERATOR, spec: spec ? sha(canonical(spec)) : "", source: `sha256:${fingerprint}`, elements, coverage };
-  return { spec: refused.length ? null : spec, draft, provenance, report, problems: refused };
+  const strip = (l: string) => l.replace(/^- /, "");
+  return {
+    spec: refused.length ? null : spec,
+    draft,
+    provenance,
+    report,
+    problems: refused,
+    strings,
+    suggested: { uses: suggestedUses.map(strip), gaps: suggested.map(strip) },
+  };
 }
 
 /** Read from the code or written in hints, by element: an element read from the code has a citation that isn't a hint. */
@@ -349,4 +445,12 @@ function coverageLines(c: Coverage): string[] {
     `- Rules: ${of(c.rules)} read from the code; ${c.checked.rules} of ${c.checked.of} checked by examples (${c.checked.examples.app} recorded from the app, ${c.checked.examples.tests} from its tests, ${c.checked.examples.hints} from hints)`,
     `- Screens: from hints, with ${c.screens.catalog} catalog components and ${c.screens.coded} coded component${c.screens.coded === 1 ? "" : "s"}${c.screens.replaces.length ? ` (standing in for ${c.screens.replaces.join(", ")})` : ""}`,
   ];
+}
+
+/**
+ * Whether a gap is already said: one per kind (push and scheduled notifications are both "notifications"), except
+ * device features, each its own (Health and step counting are different things to tell people), once by what.
+ */
+function sameGap(gaps: { kind: string; what: string }[], g: { kind: string; what: string }): boolean {
+  return gaps.some((x) => x.what === g.what || (x.kind === g.kind && g.kind !== "device" && g.kind !== "other"));
 }

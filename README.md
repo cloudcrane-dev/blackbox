@@ -7,6 +7,14 @@ the app with none of its code in it, which builds into the same app every time.
 your repo ──blackbox extract──▶ spec.json + provenance.json ──blackbox build──▶ app.html
 ```
 
+Start with any app, iPhone, Android, Flutter, React Native or the web:
+
+```
+npx @cloudcrane/blackbox init .     # finds the platform and its files, writes a starter blackbox.hints.json
+npx @cloudcrane/blackbox plan .     # what's left to write, by part, with the files to read for each
+npx @cloudcrane/blackbox extract .  # the spec, its provenance, strings.json and a report
+```
+
 - **`spec.json`** is what you share. It holds your app's look (design tokens),
   its screens (A2UI), its rules (CEL expressions), the data it saves on the
   phone, and the journeys and promises it keeps. No source code, no file paths.
@@ -32,11 +40,11 @@ your repo ──blackbox extract──▶ spec.json + provenance.json ──blac
 
 ## Packages
 
-| Package                                           | What it is                                                             |
-| ------------------------------------------------- | ---------------------------------------------------------------------- |
-| [`@cloudcrane/blackbox`](packages/blackbox)       | The CLI: `extract`, `diff`, `validate`, `coverage`, `build`, `preview` |
-| [`@cloudcrane/app-spec`](packages/app-spec)       | The spec's schema, its checks and its rule language                    |
-| [`@cloudcrane/app-runtime`](packages/app-runtime) | The compiler, and the runtime it puts in every page                    |
+| Package                                           | What it is                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [`@cloudcrane/blackbox`](packages/blackbox)       | The CLI: `init`, `plan`, `extract`, `diff`, `validate`, `coverage`, `build`, `preview` |
+| [`@cloudcrane/app-spec`](packages/app-spec)       | The spec's schema, its checks and its rule language                                    |
+| [`@cloudcrane/app-runtime`](packages/app-runtime) | The compiler, and the runtime it puts in every page                                    |
 
 ## Built on standards
 
@@ -99,11 +107,25 @@ A port is only as good as what can be shown about it, so `extract` measures it a
 
 ## What it reads today
 
-- Flutter themes (colours by role, light and dark)
+Read, never run. Each file is found by name (`init` lists them in the hints, where you can change them).
+
+| From                                                                                                                                         | What becomes of it                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| iOS `Info.plist`: usage descriptions                                                                                                         | Phone features (`uses`), with the developer's own words as why |
+| Android `AndroidManifest.xml`: permissions                                                                                                   | Phone features, suggested (Android gives no why)               |
+| iOS background modes, entitlements, widget extensions; Android notification, boot and widget receivers                                       | `gaps`                                                         |
+| `pubspec.yaml`, `package.json` dependencies                                                                                                  | `gaps`                                                         |
+| Android `colors.xml` (`values-night` for dark), iOS colour sets (with their dark appearance), CSS variables (dark by media query or `.dark`) | Colour tokens by role, light and dark                          |
+| Flutter themes                                                                                                                               | Colour tokens by role, light and dark; font and corner radius  |
+| Android `strings.xml`, iOS `.xcstrings` and `.strings`, Flutter `.arb`                                                                       | `strings.json` beside the spec, for writing the screens        |
+
+The camera and microphone work only in a page-kit component, so they're suggested rather than added. Also:
+
 - Pure TypeScript functions, translated to CEL, and the literal examples in their tests
 - Calls recorded from the running app, as examples (`rules.recorded`)
-- Dependencies that suggest gaps: Flutter's `pubspec.yaml`, and `package.json` for React Native and the web
 - Everything else from your `blackbox.hints.json`: the screens and their states, saved data, the sites with what each is sent, the phone features it uses, the orientation, journeys and promises
+
+What's planned next is in the [roadmap](docs/roadmap.md).
 
 ## Develop
 
