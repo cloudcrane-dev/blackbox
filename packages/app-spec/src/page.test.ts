@@ -31,7 +31,7 @@ describe("an HTML app as a spec", () => {
   it("keeps what the app declares: sites, device features, promises, tests and its listing", () => {
     const wrapped = wrapPage(
       app({
-        network: [{ site: "api.open-meteo.com", why: "The forecast" }],
+        network: [{ site: "api.open-meteo.com", why: "The forecast", sends: "The city you typed" }],
         uses: [{ what: "camera", why: "To scan a receipt" }],
         promises: [{ id: "P-1", text: "What you entered survives an update", kind: "data" }],
         tests: [{ id: "T-1", title: "Opens", proves: ["J-1.1"], steps: [{ see: "Hi" }] }],

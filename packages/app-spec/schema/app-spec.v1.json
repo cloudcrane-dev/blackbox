@@ -204,6 +204,14 @@
             ],
             "additionalProperties": false
           }
+        },
+        "personal": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(\\/([^~/]|~[01])*)*$"
+          },
+          "maxItems": 20
         }
       },
       "required": [
@@ -322,11 +330,17 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 300
+          },
+          "sends": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           }
         },
         "required": [
           "site",
-          "why"
+          "why",
+          "sends"
         ],
         "additionalProperties": false
       },
@@ -366,6 +380,73 @@
       },
       "maxItems": 9,
       "default": []
+    },
+    "screens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_.-]{0,63}$"
+          },
+          "says": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "states": {
+            "type": "object",
+            "properties": {
+              "empty": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "loading": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "offline": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "error": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "says"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "screen": {
+      "type": "object",
+      "properties": {
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "portrait",
+            "landscape",
+            "any"
+          ]
+        },
+        "fullscreen": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     },
     "journeys": {
       "type": "array",

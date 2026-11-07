@@ -20,13 +20,15 @@ const hasChrome = (() => {
   }
 })();
 
-// Says what it could reach, on the screen and in localStorage.
+// Says what it could reach, on the screen and in localStorage. The calls are written out of the code check's sight
+// (navigator["geo" + "location"]), as someone dodging it would: the spec's check refuses the plain calls when they
+// aren't declared (app-spec reach.ts), and this proves the frame still refuses the hidden ones.
 const CODE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
 <p id="location">…</p><p id="camera">…</p>
 <script>
 var show = function (id, text) { document.getElementById(id).textContent = id + ": " + text; localStorage.setItem(id, text); };
-navigator.geolocation.getCurrentPosition(function (p) { show("location", "at " + p.coords.latitude); }, function (e) { show("location", "refused " + e.code); });
-navigator.mediaDevices.getUserMedia({ video: true }).then(function (s) { show("camera", "on " + s.getVideoTracks().length); }, function (e) { show("camera", "refused " + e.name); });
+navigator["geo" + "location"].getCurrentPosition(function (p) { show("location", "at " + p.coords.latitude); }, function (e) { show("location", "refused " + e.code); });
+navigator.mediaDevices["get" + "UserMedia"]({ video: true }).then(function (s) { show("camera", "on " + s.getVideoTracks().length); }, function (e) { show("camera", "refused " + e.name); });
 </script></body></html>`;
 
 const spec = (uses: { what: string; why: string }[], kit: "page" | "game" = "page") => {

@@ -46,11 +46,27 @@ Blackbox copies what already exists rather than inventing formats:
 canonical JSON, RFC 6901 for pointers, and [Veridic](https://www.npmjs.com/package/veridic)
 for reading code and tracking what a change touched.
 
+## What a spec records, and what's checked
+
+A spec says everything about the app in four parts, and `blackbox validate`
+checks each. **Problems** stop it building; **warnings** say what would make it
+better.
+
+| Part                  | What the spec records                                                                                                                        | Problems                                                                                                                                                                                                                          | Warnings                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **How it looks**      | Design tokens by role, light and dark (`tokens.dark`); orientation and full screen (`screen`)                                                |                                                                                                                                                                                                                                   | A core colour role missing; text that doesn't read on what it sits on (WCAG 4.5:1), in light or dark; no dark colours; token types the runtime can't draw |
+| **What it does**      | Screens with their empty, loading, offline and error states (`screens`); rules (CEL) with their own test cases; journeys, promises and tests | A rule that doesn't give its own examples; an id used twice                                                                                                                                                                       | No empty state for a list; no offline or error state when it talks to a site                                                                              |
+| **What it keeps**     | The saved data's JSON Schema, starting data and version; migrations; the fields that are personal (`data.personal`)                          | A schema that isn't one; starting data that doesn't fit it; a migration missing between any two versions; a personal field the data doesn't have                                                                                  |                                                                                                                                                           |
+| **What it can reach** | Each site, why, and what it's sent (`network[].sends`, required); the phone features it uses (`uses`)                                        | A coded or page component naming a site, or using a feature, the spec doesn't list; an address built while it runs; Bluetooth, direct connections, USB or payments; secrets, paths, code or personal details anywhere in the spec |                                                                                                                                                           |
+
+`blackbox preview` serves the app as CloudCrane does: its content security
+policy, and a Permissions-Policy allowing only the features it declares.
+
 ## What it reads today
 
-- Flutter themes (colours, by role)
+- Flutter themes (colours by role, light and dark)
 - Pure TypeScript functions, translated to CEL, and the literal examples in their tests
-- Everything else (screens, saved data, journeys) from your `blackbox.hints.json`
+- Everything else from your `blackbox.hints.json`: the screens and their states, saved data, the sites with what each is sent, the phone features it uses, the orientation, journeys and promises
 
 ## Develop
 

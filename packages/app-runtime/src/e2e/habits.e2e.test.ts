@@ -134,4 +134,19 @@ describe.skipIf(!hasChrome)("Daily Habits, compiled, in Chrome", { timeout: 60_0
     expect(found).toEqual([]);
     await page.close();
   });
+
+  it("follows the phone's dark setting with its dark colours, and still has no serious or critical faults there", async () => {
+    const page = await open(compiled, "2026-10-27", historyOf(cases[1]!));
+    const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(await background()).toBe("rgb(246, 245, 242)");
+    await page.emulateMedia({ colorScheme: "dark" });
+    expect(await background()).toBe("rgb(18, 20, 18)");
+    await page.addScriptTag({ content: axe });
+    const found = await page.evaluate(async () => {
+      const r = await (window as unknown as { axe: { run: () => Promise<{ violations: { id: string; impact: string }[] }> } }).axe.run();
+      return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id);
+    });
+    expect(found).toEqual([]);
+    await page.close();
+  });
 });

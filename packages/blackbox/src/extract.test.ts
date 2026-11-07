@@ -86,7 +86,9 @@ describe("extract", () => {
     expect(r.problems).toEqual([]);
     const spec = r.spec!;
     expect((spec.tokens as Record<string, Record<string, { $value: unknown }>>)["color"]!["primary"]!.$value).toBe("#3366ff");
-    expect((spec.tokens as Record<string, Record<string, { $value: unknown }>>)["color"]!["background"]!.$value).toBe("#101010");
+    // Both schemes from a theme that has them: the light colours, and the dark ones as tokens.dark.
+    expect((spec.tokens as Record<string, Record<string, { $value: unknown }>>)["color"]!["background"]!.$value).toBe("#ffffff");
+    expect((spec.tokens as { dark: Record<string, Record<string, { $value: unknown }>> }).dark["color"]!["background"]!.$value).toBe("#101010");
     expect(spec.logic.consts).toEqual({ DAILY_GOAL: 8 });
     expect(Object.keys(spec.logic.functions).sort()).toEqual(["glassesLeft", "goalMet"]);
     expect(spec.logic.vectors).toHaveLength(3);

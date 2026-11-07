@@ -315,6 +315,9 @@
     "vectors": []
   },
   "network": [],
+  "screen": {
+    "orientation": "portrait"
+  },
   "journeys": [
     {
       "id": "J-1",

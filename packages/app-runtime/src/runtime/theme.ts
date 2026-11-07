@@ -26,8 +26,22 @@ function cssValue(type: string | undefined, v: Value): string | null {
   return null;
 }
 
-/** Every token as [--a2ui-name, value], in name order. A group's $type applies to its tokens. */
+/**
+ * Every token as [--a2ui-name, value], in name order. A group's $type applies to its tokens. The top-level `dark` group
+ * is the dark colours (darkVariables), not tokens of its own.
+ */
 export function tokenVariables(tokens: TokenNode): [string, string][] {
+  const { dark: _dark, ...light } = tokens as Record<string, unknown>;
+  return variablesOf(light as TokenNode);
+}
+
+/** The dark colours (tokens.dark, laid out as the light ones: dark.color.background…), as the variables they replace. */
+export function darkVariables(tokens: TokenNode): [string, string][] {
+  const dark = (tokens as Record<string, unknown>)["dark"];
+  return dark && typeof dark === "object" ? variablesOf(dark as TokenNode) : [];
+}
+
+function variablesOf(tokens: TokenNode): [string, string][] {
   const out: [string, string][] = [];
   const walk = (node: TokenNode, path: string[], type: string | undefined) => {
     const t = node.$type ?? type;
@@ -64,12 +78,21 @@ function lightness(css: string): number | null {
  * The tokens as a :root rule, with the page's colour scheme taken from its own
  * background: A2UI's defaults for what a spec leaves out (a plain button's
  * text) are light-dark() pairs, which would otherwise follow the phone's
- * setting and put light text on a light page. Light unless the background is dark.
+ * setting and put light text on a light page. Light unless the background is dark; with dark colours (tokens.dark),
+ * the light ones by default and the dark ones when the phone is set to dark.
  */
 export function tokensCss(tokens: TokenNode): string {
   const vars = tokenVariables(tokens);
+  const dark = darkVariables(tokens);
+  // With dark colours, the page follows the phone's setting; without, it keeps the one scheme its background is.
+  if (dark.length) {
+    const rule = (vs: [string, string][]) => vs.map(([k, v]) => `${k}:${v};`).join("");
+    return `:root{color-scheme:light dark;${rule(vars)}}@media (prefers-color-scheme:dark){:root{${rule(dark)}}}`;
+  }
   const background = vars.find(([k]) => k === "--a2ui-color-background")?.[1];
   const l = background === undefined ? null : lightness(background);
   const scheme = l !== null && l < 0.18 ? "dark" : "light";
   return `:root{color-scheme:${scheme};${vars.map(([k, v]) => `${k}:${v};`).join("")}}`;
 }
+
+export { lightness };

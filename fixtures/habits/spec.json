@@ -71,6 +71,56 @@
     "font-family": {
       "$type": "fontFamily",
       "$value": ["system-ui", "sans-serif"]
+    },
+    "dark": {
+      "color": {
+        "$type": "color",
+        "background": {
+          "$value": "#121412"
+        },
+        "on-background": {
+          "$value": "#ecebe7"
+        },
+        "surface": {
+          "$value": "#1c1f1d"
+        },
+        "on-surface": {
+          "$value": "#ecebe7"
+        },
+        "border": {
+          "$value": "#3a3f3b"
+        },
+        "primary": {
+          "$value": "#2dd4bf"
+        },
+        "on-primary": {
+          "$value": "#042f2e"
+        },
+        "input": {
+          "$value": "#262a27"
+        },
+        "on-input": {
+          "$value": "#ecebe7"
+        },
+        "success": {
+          "$value": "#4ade80"
+        },
+        "warning": {
+          "$value": "#fbbf24"
+        },
+        "error": {
+          "$value": "#f87171"
+        }
+      },
+      "text": {
+        "$type": "color",
+        "caption-color": {
+          "$value": "#a8a49c"
+        },
+        "color": {
+          "$value": "#ecebe7"
+        }
+      }
     }
   },
   "surface": {
@@ -240,7 +290,7 @@
             {
               "id": "removeLabel",
               "component": "Text",
-              "text": "×"
+              "text": "\u00d7"
             },
             {
               "id": "pastList",
@@ -379,7 +429,8 @@
       "days": {},
       "best": 0
     },
-    "migrations": []
+    "migrations": [],
+    "personal": ["/days"]
   },
   "logic": {
     "consts": {},
@@ -444,6 +495,15 @@
     ]
   },
   "network": [],
+  "screens": [
+    {
+      "id": "habits",
+      "says": "Today's habits, ticked off one by one, with a strip of days to look back and a field to add one",
+      "states": {
+        "empty": "Add your first habit to start a streak"
+      }
+    }
+  ],
   "journeys": [
     {
       "id": "J-1",

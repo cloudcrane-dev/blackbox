@@ -4,9 +4,14 @@ import { leakProblems } from "./leak.js";
 import { logicProblems } from "./logic.js";
 import { SpecSchema, type Spec } from "./schema.js";
 import { pageProblems } from "./page.js";
+import { designWarnings, statesWarnings } from "./design.js";
+import { memoryProblems } from "./memory.js";
+import { reachProblems } from "./reach.js";
 
 // Everything wrong with a spec, collected rather than stopping at the first: the
-// envelope's shape, then the A2UI surface, then references between parts.
+// envelope's shape, then the A2UI surface, then references between parts, what it keeps (memory.ts) and what its code
+// reaches (reach.ts). Problems refuse it. Warnings (how it looks and what each screen shows when empty, offline or
+// failing: design.ts) don't: they say what would make it better.
 
 const pathOf = (path: (string | number)[]) =>
   path
@@ -14,13 +19,13 @@ const pathOf = (path: (string | number)[]) =>
     .join("")
     .replace(/^\./, "");
 
-export function validateSpec(input: unknown, catalog?: Catalog): { spec: Spec | null; problems: Problem[] } {
+export function validateSpec(input: unknown, catalog?: Catalog): { spec: Spec | null; problems: Problem[]; warnings: Problem[] } {
   const parsed = SpecSchema.safeParse(input);
-  if (!parsed.success) return { spec: null, problems: parsed.error.issues.map((i) => ({ at: pathOf(i.path) || "spec", problem: i.message })) };
+  if (!parsed.success) return { spec: null, problems: parsed.error.issues.map((i) => ({ at: pathOf(i.path) || "spec", problem: i.message })), warnings: [] };
   const spec = parsed.data;
   // The surface is checked against the catalog it names (CloudCrane's, or A2UI's basic one).
   const named = catalog ?? catalogFor(spec.surface.catalog);
-  if (!named) return { spec: null, problems: [{ at: "surface.catalog", problem: "not a catalog this runtime has" }] };
+  if (!named) return { spec: null, problems: [{ at: "surface.catalog", problem: "not a catalog this runtime has" }], warnings: [] };
   const problems: Problem[] = [...surfaceProblems(spec.surface.messages, named)];
 
   const catalogId = (spec.surface.messages[0] as { createSurface?: { catalogId?: string } }).createSurface?.catalogId;
@@ -44,9 +49,10 @@ export function validateSpec(input: unknown, catalog?: Catalog): { spec: Spec | 
   for (const m of spec.data.migrations)
     if (m.to !== m.from + 1 || m.to > spec.data.version)
       problems.push({ at: `data.migrations ${m.from}`, problem: "steps go one version at a time, up to data.version" });
-  problems.push(...codedProblems(spec), ...pageProblems(spec), ...logicProblems(spec), ...leakProblems(spec));
+  problems.push(...codedProblems(spec), ...pageProblems(spec), ...logicProblems(spec), ...leakProblems(spec), ...memoryProblems(spec), ...reachProblems(spec));
   for (const locked of spec.mods.locked) if (spec.mods.open.includes(locked)) problems.push({ at: `mods ${locked}`, problem: "both open and locked" });
-  return { spec: problems.length ? null : spec, problems };
+  const warnings = [...designWarnings(spec), ...statesWarnings(spec)];
+  return { spec: problems.length ? null : spec, problems, warnings };
 }
 
 type Placed = { id?: string; component?: string; use?: string; inputs?: { name: string }[]; on?: { name: string }[] };

@@ -4,8 +4,10 @@ import type { Problem } from "./a2ui.js";
 // partner's code lives (file paths, file:line), code itself (functions, imports,
 // classes, widget builders), secrets (well-known key formats, and long
 // high-entropy strings), personal details (emails, phone numbers) and internal
-// hosts. Pure, so CloudCrane and a Worker can run it too; Blackbox adds
-// secretlint's rules on top. CEL expressions and coded components' code are
+// hosts. Pure and synchronous, so CloudCrane and a Worker can run it too: the
+// secret formats follow secretlint's recommended preset (MIT, secretlint.github.io)
+// as patterns, rather than secretlint itself, which only runs asynchronously.
+// CEL expressions and coded components' code are
 // exempt from the code check (they're rules and code by design) but not from
 // the others.
 
@@ -56,6 +58,15 @@ const RULES: Rule[] = [
     test: re(/\b(sk|pk|rk)[-_](live|test|proj)?[-_]?[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{35}\b|\bgh[pousr]_[A-Za-z0-9]{36}\b|\bxox[abpr]-[A-Za-z0-9-]{10,}/),
   },
   { kind: "secret", why: "a JSON Web Token", test: re(/\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\./) },
+  // After secretlint's recommended preset: the formats it knows, beyond the ones above.
+  { kind: "secret", why: "an AWS secret access key", test: re(/aws_?secret_?access_?key["'\s:=]+[A-Za-z0-9/+=]{40}\b/i) },
+  { kind: "secret", why: "an npm token", test: re(/\bnpm_[A-Za-z0-9]{36}\b/) },
+  { kind: "secret", why: "a GitHub token", test: re(/\bgithub_pat_[A-Za-z0-9_]{60,}\b/) },
+  { kind: "secret", why: "an Anthropic or OpenAI key", test: re(/\bsk-(ant-(api|admin)\d{2}-|proj-)[A-Za-z0-9_-]{20,}/) },
+  { kind: "secret", why: "a Slack webhook", test: re(/hooks\.slack\.com\/services\/T[A-Z0-9]+\/B[A-Z0-9]+\/[A-Za-z0-9]+/) },
+  { kind: "secret", why: "a SendGrid key", test: re(/\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/) },
+  { kind: "secret", why: "a Shopify token", test: re(/\bshp(at|ss|ca|pa)_[a-fA-F0-9]{32}\b/) },
+  { kind: "secret", why: "a password in an address", test: re(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]{3,}@[^\s/]+/i) },
   { kind: "secret", why: "a private key", test: re(/-----BEGIN [A-Z ]*PRIVATE KEY-----/) },
   { kind: "secret", why: "a long random-looking string", test: highEntropy },
   { kind: "personal", why: "an email address", test: re(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/) },

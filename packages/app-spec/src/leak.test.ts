@@ -32,6 +32,19 @@ describe("the leak scan", () => {
     }
   });
 
+  // After secretlint's recommended preset: each format refused wherever it is.
+  it.each([
+    ["an npm token", `npm_${"a1B2c3D4e5".repeat(3)}abcdef`, /npm token/],
+    ["a GitHub fine-grained token", `github_pat_${"A1b2C3d4E5".repeat(7)}`, /GitHub token/],
+    ["an Anthropic key", `sk-ant-api03-${"Ab1Cd2Ef3G".repeat(3)}`, /Anthropic or OpenAI key/],
+    ["an OpenAI project key", `sk-proj-${"Ab1Cd2Ef3G".repeat(3)}`, /API key|Anthropic or OpenAI key/],
+    ["a Slack webhook", "https://hooks.slack.com/services/T0001/B0002/abcDEF123", /Slack webhook/],
+    ["a password in an address", "https://admin:hunter22@db.myapp.com/x", /password in an address/],
+    ["a Shopify token", `shpat_${"0123456789abcdef".repeat(2)}`, /Shopify token/],
+  ])("refuses %s", (_, x, why) => {
+    expect(leaking(inPurpose, x)).toMatch(why);
+  });
+
   it.each([
     ["a source path", "Built from lib/screens/home_screen.dart", /source file path/],
     ["a file:line", "see streak-rules.ts:42", /file:line/],
