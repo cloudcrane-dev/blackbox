@@ -1,6 +1,6 @@
 import type { Problem } from "./a2ui.js";
 import type { Spec } from "./schema.js";
-import { USE_NAMES, type Use } from "./uses.js";
+import { DECLARABLE, type Declarable } from "./uses.page.js";
 
 // What it can reach, checked against the code: a coded or page component's code may name only the sites in `network`
 // and use only the device features in `uses`, so what the person is shown before the app opens is everything it does.
@@ -59,7 +59,7 @@ export function buildsAddressAtRuntime(code: string): boolean {
 }
 
 /** How code uses each device feature a spec can declare. */
-const USED_BY: Record<Use, RegExp[]> = {
+const USED_BY: Record<Declarable, RegExp[]> = {
   camera: [/\bgetUserMedia\b/],
   microphone: [/\bgetUserMedia\b/],
   location: [/\bgeolocation\b/],
@@ -69,6 +69,7 @@ const USED_BY: Record<Use, RegExp[]> = {
   voice: [/\b(webkit)?SpeechRecognition\b/],
   contacts: [/\bnavigator\.contacts\b/, /\bContactsManager\b/],
   nfc: [/\bNDEF(Reader|Message|Record)\b/],
+  notifications: [/\bccRemind\b/, /\bNotification\b/, /\bPushManager\b/],
 };
 /** Features a spec can't declare, so code that uses them is refused. */
 const NOT_FOR_SPECS: [string, RegExp][] = [
@@ -90,7 +91,7 @@ export function reachProblems(spec: Spec): Problem[] {
     if (buildsAddressAtRuntime(code))
       problems.push({ at, problem: "builds a request's address while it runs, so no one can tell which site it reaches: write each address out in full" });
     // camera and microphone share getUserMedia: either one declared covers it.
-    for (const what of USE_NAMES) {
+    for (const what of DECLARABLE) {
       if (declared.has(what) || !USED_BY[what].some((p) => p.test(code))) continue;
       if ((what === "camera" || what === "microphone") && (declared.has("camera") || declared.has("microphone"))) continue;
       problems.push({ at, problem: `uses ${what} but uses doesn't declare it: add it with why, or take it out` });

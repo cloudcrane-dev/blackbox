@@ -14,7 +14,7 @@ export type CodedDef = Spec["components"][string];
  * gives no frame without an origin of its own. A game kit always stays apart.
  */
 export function frameOptions(def: CodedDef, uses: Spec["uses"]): { allow: string; sameOrigin: boolean } {
-  return { allow: featuresOf(uses).join("; "), sameOrigin: def.kit === "page" && uses.some((u) => NEEDS_ORIGIN.includes(u.what)) };
+  return { allow: featuresOf(uses).join("; "), sameOrigin: def.kit === "page" && uses.some((u) => (NEEDS_ORIGIN as readonly string[]).includes(u.what)) };
 }
 
 const OF_TYPE: Record<string, (v: unknown) => boolean> = {
