@@ -364,7 +364,8 @@
               "gamepad",
               "voice",
               "contacts",
-              "nfc"
+              "nfc",
+              "notifications"
             ]
           },
           "why": {
@@ -379,7 +380,7 @@
         ],
         "additionalProperties": false
       },
-      "maxItems": 9,
+      "maxItems": 10,
       "default": []
     },
     "screens": {

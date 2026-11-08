@@ -10,6 +10,7 @@ export { leakProblems } from "./leak.js";
 export { CLOUDCRANE_CATALOG, CLOUDCRANE_CATALOG_ID, catalogFor, cloudcraneCatalog } from "./catalog.js";
 export { deriveBlueprint, type BlueprintV1 } from "./blueprint.js";
 export { USES, USE_NAMES, NEEDS_ORIGIN, featuresOf, type Use } from "./uses.js";
+export { DECLARABLE, PAGE_ONLY, type Declarable, type PageOnlyUse } from "./uses.page.js";
 export { pageOf, pageProblems, wrapPage, type PageApp } from "./page.js";
 export { designWarnings, statesWarnings, contrast, rgbOf, CORE_ROLES, TEXT_PAIRS, TEXT_CONTRAST } from "./design.js";
 export { memoryProblems, keptShape, type KeptType } from "./memory.js";

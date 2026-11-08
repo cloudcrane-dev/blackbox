@@ -40,4 +40,10 @@ describe("what a component's code reaches", () => {
       expect.stringMatching(/Bluetooth, which a spec can't declare/),
     ]);
   });
+
+  it("refuses reminders the spec doesn't declare", () => {
+    expect(reachProblems(withCode("ccRemind.at(new Date(), 'Water the plants')")).map((p) => p.problem)).toEqual([
+      expect.stringMatching(/uses notifications but uses doesn't declare it/),
+    ]);
+  });
 });

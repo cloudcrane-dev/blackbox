@@ -87,4 +87,18 @@ describe("an HTML app as a spec", () => {
     expect(problems).toEqual([{ at: "/components/page/code", problem: "looks like an email address (personal)" }]);
     expect(leakProblems(validateSpec(wrapPage(app())).spec!)).toEqual([]);
   });
+
+  it("may declare notifications, as its page is the app CloudCrane gives ccRemind; a spec that isn't a page can't", async () => {
+    const { SpecSchema } = await import("./schema.js");
+    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><button>Remind me</button><script>document.querySelector("button").onclick=function(){ccRemind.at(new Date(Date.now()+60000),"Water the plants")}</script></body></html>`;
+    const wrapped = wrapPage(app({ html, uses: [{ what: "notifications", why: "To remind you to water the plants" }] }));
+    const { spec, problems } = validateSpec(wrapped);
+    expect(problems).toEqual([]);
+    expect(spec!.uses).toEqual([{ what: "notifications", why: "To remind you to water the plants" }]);
+    const notPage = { ...wrapped, page: undefined };
+    delete (notPage as { page?: string }).page;
+    const parsed = SpecSchema.safeParse(notPage);
+    expect(parsed.success).toBe(false);
+    expect(JSON.stringify(parsed.error?.issues)).toMatch(/notifications works only in a page spec/);
+  });
 });
