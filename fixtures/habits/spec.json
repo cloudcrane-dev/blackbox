@@ -1,7 +1,7 @@
 {
   "v": 1,
   "manifest": {
-    "runtime": "0.4.0",
+    "runtime": "0.4.1",
     "generator": "blackbox@0.4.0 (hand-written example)",
     "source": {
       "fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000"

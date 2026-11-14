@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@a2ui/web_core@0.14.0':
+    hash: c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b
+    path: patches/@a2ui__web_core@0.14.0.patch
+
 importers:
 
   .:
@@ -32,7 +37,7 @@ importers:
         version: 0.14.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@3.25.76)
       '@a2ui/web_core':
         specifier: 0.14.0
-        version: 0.14.0
+        version: 0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b)
       '@types/jsdom':
         specifier: ^30.0.0
         version: 30.0.0
@@ -1070,23 +1075,23 @@ packages:
 
 snapshots:
 
-  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0)':
+  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b))':
     dependencies:
-      '@a2ui/web_core': 0.14.0
+      '@a2ui/web_core': 0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b)
       dompurify: 3.4.11
       markdown-it: 14.3.3
 
   '@a2ui/react@0.14.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@3.25.76)':
     dependencies:
-      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0)
-      '@a2ui/web_core': 0.14.0
+      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b))
+      '@a2ui/web_core': 0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b)
       clsx: 2.1.1
       markdown-it: 14.3.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       zod: 3.25.76
 
-  '@a2ui/web_core@0.14.0':
+  '@a2ui/web_core@0.14.0(patch_hash=c176a4c8bf3a7ae9e6102fb305cdc00d788e13f32ed79cae8c5be0d3b13e5a4b)':
     dependencies:
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.5

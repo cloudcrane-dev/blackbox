@@ -1,2 +1,4 @@
 packages:
   - packages/*
+patchedDependencies:
+  "@a2ui/web_core@0.14.0": patches/@a2ui__web_core@0.14.0.patch

@@ -12,7 +12,7 @@ const { html, sha256, runtime } = compile(spec);
 ```
 
 - `compile(spec)` returns the page, its sha256 and the runtime it was built
-  with (`@cloudcrane/app-runtime@0.4.0+<hash>`); it throws `CompileError`
+  with (`@cloudcrane/app-runtime@0.4.1+<hash>`); it throws `CompileError`
   listing every problem when the spec doesn't validate.
 - `compile(spec, { runtime: "shared" })` links the runtime instead of inlining
   it: the page names `runtimeFile().path` (`/_cc/runtime/<version>-<hash>.js`)
