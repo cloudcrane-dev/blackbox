@@ -1,0 +1,18 @@
+diff --git a/src/common/basic_functions.js b/src/common/basic_functions.js
+index c77ffbf9dd5aec5102b320785949f31c18644f74..9683eb440724b4b2e75c43c66e155f24d77a5f97 100644
+--- a/src/common/basic_functions.js
++++ b/src/common/basic_functions.js
+@@ -263,7 +263,12 @@ const WRITTEN_FIELDS = /^([+-]?\d{4,6})-(\d{2})-(\d{2})(?:[T ](\d{2})(?::(\d{2})
+  */
+ export function parseTimestamp(value) {
+     const hasOffset = ISO_OFFSET.test(value);
+-    const instant = new Date(hasOffset ? value : `${value}Z`);
++    // Patched by Blackbox: Safari reads only the standard's forms, so a date alone gets a midnight, a space before
++    // the time becomes a T, and only then the Z ("2026-11-02Z" and "2026-11-02 10:00Z" are Invalid Date there).
++    let written = /^[+-]?\d{4,6}-\d{2}-\d{2} \d{2}/.test(value) ? value.replace(' ', 'T') : value;
++    if (/^[+-]?\d{4,6}-\d{2}-\d{2}$/.test(written))
++        written += 'T00:00:00';
++    const instant = new Date(hasOffset ? written : `${written}Z`);
+     if (isNaN(instant.getTime()))
+         return null;
+     let offsetMinutes = 0;
